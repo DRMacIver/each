@@ -1,0 +1,16 @@
+[run]
+branch = True
+source = src
+omit=
+    **/__main__.py
+[report]
+exclude_lines =
+    @abc.abstractmethod
+    @abc.abstractproperty
+    NotImplementedError
+    pragma: no cover
+    __repr__
+    __ne__
+    __copy__
+    __deepcopy__
+    except ImportError:

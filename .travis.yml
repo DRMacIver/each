@@ -19,5 +19,6 @@ script:
 jobs:
   include:
     # Prechecks that we want to run first.
-    - stage: precheck
-      script: TASK=check-whole-repo-tests
+    - stage: main
+      script: 'pipenv run black --check src tests setup.py'
+    - script: 'pipenv run coverage run --branch -m pytest tests/ && pipenv run coverage report --show-missing --fail-under=100'
