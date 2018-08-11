@@ -26,6 +26,7 @@ will run its body in parallel, and handles resuming from interruptions and
 such robustly.
 """
 )
+@click.argument("source")
 @click.argument("command")
 @click.option(
     "--shell",
@@ -34,7 +35,6 @@ such robustly.
 The shell to use to interpret the command.
 """,
 )
-@click.argument("source")
 @click.option(
     "--destination",
     default="",
@@ -72,18 +72,19 @@ stdin, otherwise its name will be substituted in for the string {} in the comman
         "\n", " "
     ),
 )
-def main(command, source, destination, recreate, processes, stdin):
+def main(command, source, destination, recreate, processes, stdin, shell):
     if not destination:
         destination = source.rstrip("/") + "-results"
 
     with tqdm() as pb:
         each = Each(
             source=source,
+            shell=shell,
             destination=destination,
             command=command,
             progress_callback=pb.update,
             recreate=recreate,
-            n_processes=processes,
+            processes=processes,
             stdin=stdin,
         )
         pb.total = len(each.work_queue)
