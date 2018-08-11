@@ -63,11 +63,12 @@ overwritten.
 The number of child processes to run.""",
 )
 @click.option(
-    "--stdin/--by-name",
-    default=True,
+    "--stdin/--no-stdin",
+    default=None,
     help="""
 If --stdin is passed the contents of the file will be passed to the command's
 stdin, otherwise its name will be substituted in for the string {} in the command.
+By default will use stdin unless {} is present in the command.
 """.replace(
         "\n", " "
     ),
@@ -75,6 +76,9 @@ stdin, otherwise its name will be substituted in for the string {} in the comman
 def main(command, source, destination, recreate, processes, stdin, shell):
     if not destination:
         destination = source.rstrip("/") + "-results"
+
+    if stdin is None:
+        stdin = '{}' not in command
 
     with tqdm() as pb:
         each = Each(

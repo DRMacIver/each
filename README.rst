@@ -50,6 +50,15 @@ Main features over the bash loop version:
 4. You get a cool progress bar.
 5. When I get around to writing better retry features you'll get those for free.
 
+~~~~~~~~~~~~~~~~~~~~
+How do I install it?
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+  pip install each
+
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Why isn't this tested with `Hypothesis <https://github.com/HypothesisWorks/hypothesis>`_?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
