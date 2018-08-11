@@ -5,7 +5,7 @@ Each
 Each is a small batch processing utility designed to run some command on each
 file in a directory and produce some output in another directory, with the
 ability to resume processing if interrupted. Think of it as a slightly
-idiosyncratic implementation of the map part of map/reduce, or a slightly more
+idiosyncratic implementation of the map part of map/reduce, or a more
 robust version of the following bash script.
 
 .. code-block:: bash
@@ -15,6 +15,7 @@ robust version of the following bash script.
         mkdir -p $DEST
         $command < $f > $DEST/$out 2> $DEST/err
         echo $? > $DEST/status
+    done
 
 -----
 Usage
