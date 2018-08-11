@@ -14,4 +14,4 @@ install:
   - pipenv install --dev --pre
   
 script:
-  - script: pipenv run ./scripts/run-build.sh
+  - pipenv run ./scripts/run-build.sh
