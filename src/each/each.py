@@ -1,9 +1,10 @@
-import attr
-import os
 import heapq
-import traceback
-import shutil
+import os
 import shlex
+import shutil
+import traceback
+
+import attr
 
 # We can't use the normal sys ones within pytest if we want to actually operate
 # on the underlying unix file descriptors.
@@ -31,6 +32,7 @@ class Each(object):
     processes = attr.ib(default=1)
     recreate = attr.ib(default=False)
     stdin = attr.ib(default=True)
+    shell = attr.ib(default=SHELL)
 
     score_file = attr.ib(default=lambda s: os.stat(s).st_size)
 
@@ -104,10 +106,12 @@ class Each(object):
                         out = os.open(out_file, flags)
                         os.dup2(err, STDERR)
                         os.dup2(out, STDOUT)
-                        argv = [os.path.basename(SHELL), "-c", self.command]
+                        argv = [os.path.basename(self.shell), "-c", self.command]
                         if not self.stdin:
-                            argv[-1] += " " + shlex.quote(os.path.abspath(source_file))
-                        os.execv(SHELL, argv)
+                            argv[-1] = argv[-1].replace(
+                                "{}", shlex.quote(os.path.abspath(source_file))
+                            )
+                        os.execv(self.shell, argv)
                     except:
                         os.dup2(original_out, STDOUT)
                         os.dup2(original_err, STDERR)

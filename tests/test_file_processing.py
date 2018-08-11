@@ -1,20 +1,23 @@
-from each import Each
 import pytest
+
+from each import Each
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])
 @pytest.mark.parametrize("stderr", [False, True])
-def test_processes_each_file(tmpdir, processes, stderr):
+@pytest.mark.parametrize("stdin", [False, True])
+def test_processes_each_file(tmpdir, processes, stderr, stdin):
     input_files = tmpdir.mkdir("input")
     output_files = tmpdir.mkdir("output")
     for i in range(10):
         p = input_files.join("%d.txt" % (i,))
         p.write("hello %d" % (i,))
     each = Each(
-        command="cat >&2" if stderr else "cat",
+        command=("cat >&2 " if stderr else "cat") + (" {}" if not stdin else ""),
         source=input_files,
         destination=output_files,
         processes=processes,
+        stdin=stdin,
     )
     each.clear_queue()
 
