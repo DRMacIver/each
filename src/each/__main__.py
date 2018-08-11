@@ -7,6 +7,10 @@ import click
 from tqdm import tqdm
 import traceback
 import shutil
+import shlex
+
+
+SHELL = shutil.which("bash") or shutil.which("sh")
 
 
 def run_command(source_file, target_file, command):
@@ -89,22 +93,27 @@ class Each(object):
                     )
                 else:
                     try:
+                        original_err = os.dup(sys.stderr.fileno())
+                        original_out = os.dup(sys.stdout.fileno())
                         if self.stdin:
                             filein = os.open(source_file, os.O_RDONLY)
                             os.dup2(filein, sys.stdin.fileno())
                         else:
-                            os.close(sys.stdin.fileno)
+                            os.close(sys.stdin.fileno())
                         flags = os.O_EXCL | os.O_CREAT | os.O_WRONLY
-                        original_err = os.dup(sys.stderr.fileno())
-                        original_out = os.dup(sys.stdout.fileno())
-                        err = os.open(err_file, os.O_EXCL | os.O_CREAT)
+                        err = os.open(err_file, flags)
                         out = os.open(out_file, flags)
                         os.dup2(err, sys.stderr.fileno())
                         os.dup2(out, sys.stdout.fileno())
-                        argv = [os.path.basename(self.command)]
+                        argv = [
+                            os.path.basename(SHELL),
+                            '-c',
+                            self.command
+                        ]
                         if not self.stdin:
-                            argv.append(os.path.abspath(source_file))
-                        os.execv(self.command, argv)
+                            argv[-1] += " " + shlex.quote(
+                                os.path.abspath(source_file))
+                        os.execv(SHELL, argv)
                     except:
                         os.dup2(original_out, sys.stdout.fileno())
                         os.dup2(original_err, sys.stderr.fileno())
@@ -115,9 +124,6 @@ class Each(object):
                 work_item = self.work_in_progress.pop(pid)
                 if result == 0:
                     os.unlink(work_item.err_file)
-                else:
-                    tqdm.write("Failed %r %r" % (work_item, result))
-                    os.unlink(work_item.out_file)
 
 
 @click.command()
@@ -130,9 +136,6 @@ class Each(object):
 def main(command, source, destination, recreate, processes, stdin):
     if not destination:
         destination = source.rstrip("/") + '-results'
-
-    if not os.path.exists(command):
-        command = shutil.which(command)
 
     with tqdm() as pb:
         each = Each(
