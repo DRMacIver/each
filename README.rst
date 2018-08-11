@@ -42,8 +42,13 @@ each of these files" with the tasks having varying degrees of flakiness, and I
 kept finding myself writing bad versions of this, so I thought I would solve
 the problem once and for all.
 
-This has nice process management for running things in parallel, is good (and
-I'm working on making it better)
+Main features over the bash loop version:
+
+1. You don't risk learning how to write more bash than you want to.
+2. It resumes from where it left off if you kill it.
+3. Automatic parallelism
+4. You get a cool progress bar.
+5. When I get around to writing better retry features you'll get those for free.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Why isn't this tested with `Hypothesis <https://github.com/HypothesisWorks/hypothesis>`_?
