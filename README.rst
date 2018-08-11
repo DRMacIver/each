@@ -44,6 +44,14 @@ the problem once and for all.
 This has nice process management for running things in parallel, is good (and
 I'm working on making it better)
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why isn't this tested with `Hypothesis <https://github.com/HypothesisWorks/hypothesis>`_?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Look, buddy, you're lucky it's tested at *all*.
+
+(It probably will be at some point)
+
 ~~~~~~~~~~~~~~~~~~
 Should I use this?
 ~~~~~~~~~~~~~~~~~~
