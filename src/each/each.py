@@ -112,7 +112,7 @@ class Each(object):
                                 "{}", shlex.quote(os.path.abspath(source_file))
                             )
                         os.execv(self.shell, argv)
-                    except:
+                    except:  # noqa
                         os.dup2(original_out, STDOUT)
                         os.dup2(original_err, STDERR)
                         traceback.print_exc()
