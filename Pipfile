@@ -4,9 +4,17 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-each = {editable = true, path = "."}
+click = "*"
+attrs = "*"
 
 [dev-packages]
+pytest = "*"
+coverage = "*"
+each = {editable = true, path = "."}
+black = "*"
 
 [requires]
 python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true

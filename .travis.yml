@@ -11,7 +11,13 @@ python:
 
 install:
   - pip install --upgrade pip setuptools pipenv
-  - pipenv install --dev
+  - pipenv install --dev --pre
   
 script:
-  - pipenv run python -m pytest tests
+  - pipenv run python -m coverage -m pytest tests
+
+jobs:
+  include:
+    # Prechecks that we want to run first.
+    - stage: precheck
+      script: TASK=check-whole-repo-tests

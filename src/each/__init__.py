@@ -19,7 +19,7 @@ def run_command(source_file, target_file, command):
 
 
 @attr.s()
-class WorkInProgress():
+class WorkInProgress:
     pid = attr.ib()
     source_file = attr.ib()
     out_file = attr.ib()
@@ -36,9 +36,7 @@ class Each(object):
     recreate = attr.ib(default=False)
     stdin = attr.ib(default=True)
 
-    score_file = attr.ib(
-        default=lambda s: os.stat(s).st_size
-    )
+    score_file = attr.ib(default=lambda s: os.stat(s).st_size)
 
     def __attrs_post_init__(self):
         self.work_queue = [
@@ -59,10 +57,7 @@ class Each(object):
 
     def clear_queue(self):
         while self.work_in_progress or self.work_queue:
-            while (
-                self.work_queue and
-                len(self.work_in_progress) < self.n_processes
-            ):
+            while self.work_queue and len(self.work_in_progress) < self.n_processes:
                 _, source_file = heapq.heappop(self.work_queue)
                 if not os.path.exists(source_file):
                     self.progress_callback()
@@ -71,9 +66,9 @@ class Each(object):
 
                 base_dir = os.path.join(self.destination, name)
 
-                out_file = os.path.join(base_dir, 'out')
-                err_file = os.path.join(base_dir, 'err')
-                status_file = os.path.join(base_dir, 'status')
+                out_file = os.path.join(base_dir, "out")
+                err_file = os.path.join(base_dir, "err")
+                status_file = os.path.join(base_dir, "status")
 
                 if os.path.exists(base_dir):
                     if self.recreate:
@@ -93,7 +88,8 @@ class Each(object):
                 pid = os.fork()
                 if pid != 0:
                     self.work_in_progress[pid] = WorkInProgress(
-                        pid=pid, source_file=source_file,
+                        pid=pid,
+                        source_file=source_file,
                         out_file=out_file,
                         err_file=err_file,
                         status_file=status_file,
@@ -112,14 +108,9 @@ class Each(object):
                         out = os.open(out_file, flags)
                         os.dup2(err, STDERR)
                         os.dup2(out, STDOUT)
-                        argv = [
-                            os.path.basename(SHELL),
-                            '-c',
-                            self.command
-                        ]
+                        argv = [os.path.basename(SHELL), "-c", self.command]
                         if not self.stdin:
-                            argv[-1] += " " + shlex.quote(
-                                os.path.abspath(source_file))
+                            argv[-1] += " " + shlex.quote(os.path.abspath(source_file))
                         os.execv(SHELL, argv)
                     except:
                         os.dup2(original_out, STDOUT)
@@ -130,5 +121,5 @@ class Each(object):
                 pid, result = os.wait()
                 self.progress_callback()
                 work_item = self.work_in_progress.pop(pid)
-                with open(work_item.status_file, 'w') as o:
+                with open(work_item.status_file, "w") as o:
                     print(result >> 8, file=o)
