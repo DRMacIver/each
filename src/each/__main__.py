@@ -1,16 +1,77 @@
-import click
-from tqdm import tqdm
-from each import Each
 import multiprocessing as mp
 
+import click
+from tqdm import tqdm
 
-@click.command()
+from each import SHELL, Each
+
+
+@click.command(
+    help="""
+each runs a command on each file in a source directory, writing its results to
+files in a destination directory.
+
+Roughly equivalent to a more robust version of the following bash loop:
+
+\b
+for f in $source/* ; do
+    DEST=$destination/$(basename $f)
+    mkdir -p $DEST
+    $command < $f > $DEST/$out 2> $DEST/err
+    echo $? > $DEST/status
+done
+
+Unlike this loop it comes with a variety of ways to configure it,
+will run its body in parallel, and handles resuming from interruptions and
+such robustly.
+"""
+)
 @click.argument("command")
+@click.option(
+    "--shell",
+    default=SHELL,
+    help="""
+The shell to use to interpret the command.
+""",
+)
 @click.argument("source")
-@click.option("--destination", default="")
-@click.option("--recreate/--no-recreate", default=False)
-@click.option("--processes", default=max(1, mp.cpu_count() - 1))
-@click.option("--stdin/--by-name", default=True)
+@click.option(
+    "--destination",
+    default="",
+    help="""
+The destination directory. Defaults to the name of the input directory with
+"-results" appended to the end.
+""".replace(
+        "\n", " "
+    ),
+)
+@click.option(
+    "--recreate/--no-recreate",
+    default=False,
+    help="""
+By default each will not attempt to recreate files that have already been
+successfully processed. If this is set to true, existing files will be
+overwritten.
+""".replace(
+        "\n", " "
+    ),
+)
+@click.option(
+    "--processes",
+    default=max(1, mp.cpu_count() - 1),
+    help="""
+The number of child processes to run.""",
+)
+@click.option(
+    "--stdin/--by-name",
+    default=True,
+    help="""
+If --stdin is passed the contents of the file will be passed to the command's
+stdin, otherwise its name will be substituted in for the string {} in the command.
+""".replace(
+        "\n", " "
+    ),
+)
 def main(command, source, destination, recreate, processes, stdin):
     if not destination:
         destination = source.rstrip("/") + "-results"
