@@ -64,7 +64,6 @@ class Each(object):
                 len(self.work_in_progress) < self.n_processes
             ):
                 _, source_file = heapq.heappop(self.work_queue)
-                self.progress_callback()
 
                 name = os.path.basename(source_file)
 
@@ -73,6 +72,7 @@ class Each(object):
                     out_file += ('.' + self.suffix)
                 err_file = out_file + '.error'
                 if not os.path.exists(source_file):
+                    self.progress_callback()
                     continue
                 if (
                     os.path.exists(out_file) or
@@ -83,6 +83,7 @@ class Each(object):
                             if os.path.exists(f):
                                 os.unlink(f)
                     else:
+                        self.progress_callback()
                         continue
                 pid = None
                 pid = os.fork()
@@ -123,6 +124,7 @@ class Each(object):
                         os._exit(1)
             if self.work_in_progress:
                 pid, result = os.wait()
+                self.progress_callback()
                 work_item = self.work_in_progress.pop(pid)
                 with open(work_item.status_file, 'w') as o:
                     print(result >> 8, file=o)
