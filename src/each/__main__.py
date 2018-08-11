@@ -23,6 +23,7 @@ class WorkInProgress():
     source_file = attr.ib()
     out_file = attr.ib()
     err_file = attr.ib()
+    status_file = attr.ib()
 
 
 @attr.s()
@@ -90,6 +91,7 @@ class Each(object):
                         pid=pid, source_file=source_file,
                         out_file=out_file,
                         err_file=err_file,
+                        status_file=out_file + '.status',
                     )
                 else:
                     try:
@@ -122,8 +124,8 @@ class Each(object):
             if self.work_in_progress:
                 pid, result = os.wait()
                 work_item = self.work_in_progress.pop(pid)
-                if result == 0:
-                    os.unlink(work_item.err_file)
+                with open(work_item.status_file, 'w') as o:
+                    print(result >> 8, file=o)
 
 
 @click.command()
@@ -133,7 +135,8 @@ class Each(object):
 @click.option('--recreate/--no-recreate', default=False)
 @click.option('--processes', default=max(1, mp.cpu_count() - 1))
 @click.option('--stdin/--by-name', default=True)
-def main(command, source, destination, recreate, processes, stdin):
+@click.option('--suffix', default='')
+def main(command, source, destination, recreate, processes, stdin, suffix):
     if not destination:
         destination = source.rstrip("/") + '-results'
 
@@ -143,6 +146,7 @@ def main(command, source, destination, recreate, processes, stdin):
             command=command,
             progress_callback=pb.update, recreate=recreate,
             n_processes=processes, stdin=stdin,
+            suffix=suffix.lstrip('.'),
         )
         pb.total = len(each.work_queue)
         pb.refresh()
