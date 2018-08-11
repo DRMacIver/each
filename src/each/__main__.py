@@ -78,7 +78,7 @@ def main(command, source, destination, recreate, processes, stdin, shell):
         destination = source.rstrip("/") + "-results"
 
     if stdin is None:
-        stdin = '{}' not in command
+        stdin = "{}" not in command
 
     with tqdm() as pb:
         each = Each(

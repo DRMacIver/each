@@ -6,7 +6,8 @@ from shutil import which
 import pytest
 
 
-def test_processes_each_file(tmpdir):
+@pytest.mark.parametrize("cat", ["cat", "cat {}"])
+def test_processes_each_file(tmpdir, cat):
     input_files = tmpdir.mkdir("input")
     output_files = tmpdir.mkdir("output")
     for i in range(10):
@@ -14,14 +15,7 @@ def test_processes_each_file(tmpdir):
         p.write("hello %d" % (i,))
 
     subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "each",
-            str(input_files),
-            "cat",
-            "--destination=%s" % (output_files,),
-        ]
+        [sys.executable, "-m", "each", str(input_files), cat, "--destination=%s" % (output_files,)]
     )
 
     for i, f in enumerate(output_files.listdir()):
