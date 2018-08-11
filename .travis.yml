@@ -18,3 +18,10 @@ install:
   
 script:
   - pipenv run ./scripts/run-build.sh
+
+notifications:
+  email:
+    recipients:
+      - david@drmaciver.com
+    on_success: never
+    on_failure: never
