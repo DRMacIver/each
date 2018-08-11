@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "79d9f0cca247795ca2b1d02966ba91dfcb68071d12ba340444e07d3d8a206d2f"
+            "sha256": "eb9f8bf10cc789ed27fa7bc0cd997c98155814b25b96a4b337fa6d940d89d362"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -103,6 +103,15 @@
         "each": {
             "editable": true,
             "path": "."
+        },
+        "isort": {
+            "hashes": [
+                "sha256:1153601da39a25b14ddc54955dbbacbb6b2d19135386699e2ad58517953b34af",
+                "sha256:b9c40e9750f3d77e6e4d441d8b0266cf555e7cdabdcff33c4fd06366ca761ef8",
+                "sha256:ec9ef8f4a9bc6f71eec99e1806bfa2de401650d996c59330782b89a5555c1497"
+            ],
+            "index": "pypi",
+            "version": "==4.3.4"
         },
         "more-itertools": {
             "hashes": [
