@@ -14,9 +14,4 @@ install:
   - pipenv install --dev --pre
   
 script:
-  - script: 'pipenv run black --check src tests setup.py'
-  - script: 'pipenv run isort --check src tests setup.py'
-  - script: 'pipenv run flake8 src tests setup.py'
-  - script: 'pipenv run coverage run --branch -m pytest tests/ && pipenv run coverage report --show-missing --fail-under=100'
-
-jobs:
+  - script: pipenv run ./scripts/run-build.sh
