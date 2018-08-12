@@ -92,7 +92,7 @@ class Each(object):
                         err_file=err_file,
                         status_file=status_file,
                     )
-                else:  # pragma: no cover
+                else:
                     try:
                         original_err = os.dup(STDERR)
                         original_out = os.dup(STDOUT)
