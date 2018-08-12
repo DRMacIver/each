@@ -58,6 +58,15 @@ How do I install it?
 
   pip install each
 
+~~~~~~~~~~~~~~~~~~~~
+What does it run on?
+~~~~~~~~~~~~~~~~~~~~
+
+Probably anything unixy. I've developed and tested it on Linux (including WSL, the Windows
+10 Linux Subsystem), but it's likely to work unmodified on OSX. It's unlikely to work on
+Windows. I'm not against Windows support if someone wants to contribute it, but I won't
+be writing it myself and it's a fairly unixy sort of tool.
+
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Why isn't this tested with `Hypothesis <https://github.com/HypothesisWorks/hypothesis>`_?
