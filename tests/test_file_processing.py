@@ -118,3 +118,24 @@ def test_can_handle_disappearing_files(tmpdir):
     each.clear_queue()
 
     assert len(output_files.listdir()) == 1
+
+
+def test_timeout_in_file_processing(tmpdir):
+
+    input_files = tmpdir.mkdir("input")
+    output_files = tmpdir.mkdir("output")
+    input_files.join("hello").write("world")
+
+    each = Each(
+        command="sleep 0.5 && cat",
+        source=input_files,
+        destination=output_files,
+        processes=1,
+        recreate=True,
+        wait_timeout=0.05,
+    )
+
+    each.clear_queue()
+
+    assert len(output_files.listdir()) == 1
+    assert output_files.join("hello").join("out").read() == "world"

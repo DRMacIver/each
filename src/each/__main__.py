@@ -1,4 +1,5 @@
 import multiprocessing as mp
+from datetime import datetime, timedelta
 
 import click
 from tqdm import tqdm
@@ -81,12 +82,23 @@ def main(command, source, destination, recreate, processes, stdin, shell):
         stdin = "{}" not in command
 
     with tqdm() as pb:
+
+        def new_prediction(p):
+            now = datetime.now()
+            eta = now + timedelta(seconds=p.percentile(99))
+
+            if (eta - now <= timedelta(days=1)) and eta.day == now.day:
+                pb.set_postfix(eta=eta.strftime("%H:%M:%S"))
+            else:
+                pb.set_postfix(eta=eta.strftime("%Y-%m-%d %H:%M"))
+
         each = Each(
             source=source,
             shell=shell,
             destination=destination,
             command=command,
             progress_callback=pb.update,
+            prediction_callback=new_prediction,
             recreate=recreate,
             processes=processes,
             stdin=stdin,

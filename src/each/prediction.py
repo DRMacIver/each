@@ -17,13 +17,17 @@ class PredictedRuntime:
         return np.percentile(self.simulations, q)
 
 
-def predict_timing(historical_times, parallelism, remaining_tasks, seed=0):
-    task_times = np.array(historical_times)
+def predict_timing(historical_times, current_queue, remaining_tasks, seed=0):
+    parallelism = len(current_queue)
+    current_queue = np.array(current_queue)
+    current_predictions = npr.exponential(current_queue)
+    task_times = np.concatenate((current_predictions, np.array(historical_times)))
+
     npr.seed(seed)
 
     def simulate():
         runtimes = npr.choice(task_times, size=remaining_tasks)
-        runtimes = npr.exponential(1 / runtimes)
+        runtimes = np.concatenate((current_predictions, npr.exponential(runtimes)))
 
         schedules = []
         for t in runtimes[:parallelism]:

@@ -12,6 +12,8 @@ each = {editable = true, path = "."}
 black = "*"
 isort = "*"
 flake8 = "*"
+ipython = "*"
+mock = "*"
 
 [requires]
 python_version = "3.6"
