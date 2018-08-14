@@ -32,7 +32,7 @@ setuptools.setup(
     license="GPL v3",
     description="A tool for running programs on many inputs",
     zip_safe=False,
-    install_requires=["attrs>=18.0.0", "click", "tqdm"],
+    install_requires=["attrs>=18.0.0", "click", "tqdm", "numpy"],
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*",
     classifiers=[
         "Operating System :: Unix",
