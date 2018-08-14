@@ -44,15 +44,24 @@ class Each(object):
     wait_timeout = attr.ib(default=1.0)
 
     def __attrs_post_init__(self):
-        self.work_queue = [os.path.join(self.source, s) for s in os.listdir(self.source)]
-        # By iterating in random order, we can paradoxically get much better predictability
-        # about the final run time! This allows us to conclude the times we've seen so far
-        # are reasonably representative of the times we will see in future.
-        self.random.shuffle(self.work_queue)
+        self.work_queue = []
+
         try:
             os.makedirs(self.destination)
         except FileExistsError:
             pass
+
+        for s in os.listdir(self.source):
+            source_file = os.path.join(self.source, s)
+            status_file = os.path.join(self.destination, s, "status")
+            if not self.recreate and os.path.exists(status_file):
+                self.progress_callback()
+            else:
+                self.work_queue.append(source_file)
+        # By iterating in random order, we can paradoxically get much better predictability
+        # about the final run time! This allows us to conclude the times we've seen so far
+        # are reasonably representative of the times we will see in future.
+        self.random.shuffle(self.work_queue)
 
     progress_callback = attr.ib(default=lambda: None)
     prediction_callback = attr.ib(default=lambda p: None)
@@ -75,13 +84,10 @@ class Each(object):
             status_file = os.path.join(base_dir, "status")
 
             if os.path.exists(base_dir):
-                if self.recreate:
-                    for f in [out_file, err_file, status_file]:
-                        if os.path.exists(f):
-                            os.unlink(f)
-                else:
-                    self.progress_callback()
-                    continue
+                assert self.recreate
+                for f in [out_file, err_file, status_file]:
+                    if os.path.exists(f):
+                        os.unlink(f)
 
             try:
                 os.makedirs(base_dir)

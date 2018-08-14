@@ -139,3 +139,35 @@ def test_timeout_in_file_processing(tmpdir):
 
     assert len(output_files.listdir()) == 1
     assert output_files.join("hello").join("out").read() == "world"
+
+
+def test_immediately_triggers_progress_on_initially_completed_work(tmpdir):
+    input_files = tmpdir.mkdir("input")
+    output_files = tmpdir.mkdir("output")
+
+    for i in range(3):
+        assert i == len(input_files.listdir())
+
+        progress = 0
+
+        def cb():
+            nonlocal progress
+            progress += 1
+
+        input_files.join(str(i)).write("")
+
+        each = Each(
+            command="true",
+            source=input_files,
+            destination=output_files,
+            processes=1,
+            recreate=False,
+            progress_callback=cb,
+        )
+
+        assert len(each.work_queue) == 1 or i == 0
+        assert progress == i
+
+        each.clear_queue()
+
+        assert progress == i + 1
