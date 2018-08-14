@@ -84,7 +84,6 @@ class Each(object):
             status_file = os.path.join(base_dir, "status")
 
             if os.path.exists(base_dir):
-                assert self.recreate
                 for f in [out_file, err_file, status_file]:
                     if os.path.exists(f):
                         os.unlink(f)
