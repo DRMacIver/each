@@ -103,7 +103,7 @@ def main(command, source, destination, recreate, processes, stdin, shell):
             processes=processes,
             stdin=stdin,
         )
-        pb.total = len(each.work_queue)
+        pb.total = pb.n + len(each.work_queue)
         pb.refresh()
 
         each.clear_queue()
