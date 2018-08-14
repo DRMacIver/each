@@ -2,7 +2,9 @@ import heapq
 import os
 import shlex
 import shutil
+import time
 import traceback
+from random import Random
 
 import attr
 
@@ -15,9 +17,30 @@ STDERR = 2
 SHELL = os.environ.get("SHELL") or shutil.which("bash") or shutil.which("sh")
 
 
+class Timeout(Exception):
+    pass
+
+
+def timeout_sigh(signum, frame):
+    raise Timeout()
+
+
+@contextmanager
+def timeout(seconds):
+    previous = None
+    try:
+        previous = signal.signal(signal.SIG_ALRM, timeout_sigh)
+        signal.setitimer(signal.ITIMER_REAL, seconds)
+        yield
+    finally:
+        if previous is not None:
+            signal.signal(signal.SIG_ALRM, previous)
+
+
 @attr.s()
 class WorkInProgress:
     pid = attr.ib()
+    started = attr.ib()
     source_file = attr.ib()
     out_file = attr.ib()
     err_file = attr.ib()
@@ -33,16 +56,15 @@ class Each(object):
     recreate = attr.ib(default=False)
     stdin = attr.ib(default=True)
     shell = attr.ib(default=SHELL)
-
-    score_file = attr.ib(default=lambda s: os.stat(s).st_size)
+    random = attr.ib(default=attr.Factory(Random))
+    runtimes = attr.ib(default=attr.Factory(list))
 
     def __attrs_post_init__(self):
-        self.work_queue = [
-            (self.score_file(t), t)
-            for s in os.listdir(self.source)
-            for t in [os.path.join(self.source, s)]
-        ]
-        heapq.heapify(self.work_queue)
+        self.work_queue = [os.path.join(self.source, s) for s in os.listdir(self.source)]
+        # By iterating in random order, we can paradoxically get much better predictability
+        # about the final run time! This allows us to conclude the times we've seen so far
+        # are reasonably representative of the times we will see in future.
+        self.random.shuffle(self.work_queue)
         try:
             os.makedirs(self.destination)
         except FileExistsError:
@@ -91,6 +113,7 @@ class Each(object):
                         out_file=out_file,
                         err_file=err_file,
                         status_file=status_file,
+                        started=time.monotonic(),
                     )
                 else:
                     try:
@@ -121,5 +144,6 @@ class Each(object):
                 pid, result = os.wait()
                 self.progress_callback()
                 work_item = self.work_in_progress.pop(pid)
+                self.runtimes.append(time.monotonic() - work_item.start)
                 with open(work_item.status_file, "w") as o:
                     print(result >> 8, file=o)
