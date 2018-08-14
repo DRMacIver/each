@@ -12,7 +12,7 @@ STDIN = 0
 STDOUT = 1
 STDERR = 2
 
-SHELL = shutil.which("bash") or shutil.which("sh")
+SHELL = os.environ.get("SHELL") or shutil.which("bash") or shutil.which("sh")
 
 
 @attr.s()
