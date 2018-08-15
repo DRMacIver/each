@@ -21,7 +21,7 @@ def test_processes_each_file(tmpdir, processes, stderr, stdin):
     )
     each.clear_queue()
 
-    for i, f in enumerate(output_files.listdir()):
+    for i, f in enumerate(sorted(output_files.listdir())):
         out = f.join("out")
         err = f.join("err")
         status = f.join("status")
