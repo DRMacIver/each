@@ -18,7 +18,7 @@ def test_processes_each_file(tmpdir, cat):
         [sys.executable, "-m", "each", str(input_files), cat, "--destination=%s" % (output_files,)]
     )
 
-    for i, f in enumerate(output_files.listdir()):
+    for i, f in enumerate(sorted(output_files.listdir())):
         out = f.join("out")
         err = f.join("err")
         status = f.join("status")
