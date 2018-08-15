@@ -2,20 +2,40 @@
 Each
 ====
 
-Each is a small batch processing utility designed to run some command on each
-file in a directory and produce some output in another directory, with the
-ability to resume processing if interrupted. Think of it as a slightly
-idiosyncratic implementation of the map part of map/reduce, or a more
-robust version of the following bash script.
+Each is a shell command for running robust, parallel, for loops with good feedback mechanisms.
+
+It's optimised for "medium scale" experiments, which are a bit too small and
+ad hoc to run on a proper cluster (or maybe you just don't *have* a proper cluster. I don't),
+but are slow enough that restarting them from scratch would be painful and, ideally,
+parallel enough that if you happen to have a sixteen core server lying around to run them on you really want to be using all sixteen of those cores.
+
+Primary usage of each is a more robust version of the following bash for loop:
 
 .. code-block:: bash
 
-    for f in $source/* ; do
-        DEST=$destination/$(basename $f)
-        mkdir -p $DEST
-        $command < $f > $DEST/$out 2> $DEST/err
-        echo $? > $DEST/status
+    for f in "$source"/* ; do
+        DEST="$destination"/$(basename $f)
+        mkdir -p "$DEST"
+        "$command" < "$f" > "$DEST/out" 2> "$DEST/err"
+        echo $? > "$DEST/status"
     done
+
+The same could be written using each as follows:
+
+.. code-block:: bash
+
+	each "$source" "$command" --destination="$destination"
+
+As well as being shorter and more readable, writing this with each gets you:
+
+1. Automatic parallelism. You can control how many processes are run with ``--processes=n``,
+   but it defaults to using all but one of the cores available (or one on a single core machine).
+2. Automatic resume - if each dies, when it next starts up it will resume from where it left off.
+3. Feedback on progress, with good predictive analytics about when the process will finish (still a work in progress but the basics are there).
+
+Later you will also get good logic for retrying errors, but I haven't written that bit yet.
+
+Each is still a bit early days, so it likely has some rough edges, but it's well tested and has been making my life vastly better already.
 
 -----
 Usage
@@ -26,6 +46,11 @@ Usage is:
 .. code-block:: bash
 
     each some-input-directory 'some command to run' --destination="output directory"
+
+Commands can be arbitrary shell commands (and will be run by ``$SHELL -c 'some command to run'`` by default).
+
+By default, the file's contents will be passed to the child process's stdin. If you want to pass the file by name, you can use the special string `{}`.
+If you do, the file to be processed will be substituted for it (with its absolute path name) and stdin will be empty.
 
 More advanced usage options are available from ``each --help``.
 
