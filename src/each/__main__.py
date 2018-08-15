@@ -58,7 +58,8 @@ overwritten.
     ),
 )
 @click.option(
-    "--processes", "-j",
+    "--processes",
+    "-j",
     default=max(1, mp.cpu_count() - 1),
     help="""
 The number of child processes to run in parallel.""",
