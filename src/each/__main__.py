@@ -58,10 +58,10 @@ overwritten.
     ),
 )
 @click.option(
-    "--processes",
+    "--processes", "-j",
     default=max(1, mp.cpu_count() - 1),
     help="""
-The number of child processes to run.""",
+The number of child processes to run in parallel.""",
 )
 @click.option(
     "--stdin/--no-stdin",
