@@ -33,15 +33,15 @@ class WorkInProgress:
 class FileWorkItem:
     """A file to be processed by ``Each``."""
 
+    """A name for this work item that can be used as a filename."""
+    name = attr.ib()
+
+    """The location of the file on disk."""
     path = attr.ib()
 
     def exists(self):
         """Whether or not this work item still exists."""
         return os.path.exists(self.path)
-
-    def name(self):
-        """A name for this work item that can be used as a filename."""
-        return os.path.basename(self.path)
 
     def as_input_file(self):
         """This work item as a file descriptor, that can be passed to STDIN."""
@@ -86,7 +86,7 @@ class Each(object):
             if not self.recreate and os.path.exists(status_file):
                 self.progress_callback()
             else:
-                self.work_queue.append(FileWorkItem(source_file))
+                self.work_queue.append(FileWorkItem(name=s, path=source_file))
         # By iterating in random order, we can paradoxically get much better predictability
         # about the final run time! This allows us to conclude the times we've seen so far
         # are reasonably representative of the times we will see in future.
@@ -104,9 +104,8 @@ class Each(object):
             if not work_item.exists():
                 self.progress_callback()
                 continue
-            name = work_item.name()
 
-            base_dir = os.path.join(self.destination, name)
+            base_dir = os.path.join(self.destination, work_item.name)
 
             out_file = os.path.join(base_dir, "out")
             err_file = os.path.join(base_dir, "err")
