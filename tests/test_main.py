@@ -5,6 +5,8 @@ from shutil import which
 
 import pytest
 
+from common import get_directory_contents
+
 
 @pytest.mark.parametrize("cat", ["cat", "cat {}"])
 def test_processes_each_file(tmpdir, cat):
@@ -22,7 +24,13 @@ def test_processes_each_file(tmpdir, cat):
     assert output_files == [output_path.join("%d.txt" % (i,)) for i in range(10)]
 
     for i, f in enumerate(output_files):
-        assert get_directory_contents(f) == {"err": "", "status": "0", "out": "hello %d" % (i,)}
+        contents = "hello %d" % (i,)
+        assert get_directory_contents(f) == {
+            "err": "",
+            "status": "0",
+            "out": contents,
+            "in": contents,
+        }
 
 
 @pytest.mark.parametrize("echo", ["cat", "echo {}"])
@@ -49,16 +57,6 @@ def test_processes_each_line(tmpdir, echo):
     for i, f in enumerate(output_files):
         line = "hello %d" % (i,)
         assert get_directory_contents(f) == {"out": line, "in": line, "err": "", "status": "0"}
-
-
-def get_contents(path):
-    """Get the contents of 'path' if it exists."""
-    return path.read().strip() if path.check() else None
-
-
-def get_directory_contents(path):
-    """Get the contents of many files under 'path'."""
-    return {child.basename: get_contents(child) for child in path.listdir()}
 
 
 @pytest.mark.parametrize("shell", [which("sh"), which("bash")])

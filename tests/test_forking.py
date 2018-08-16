@@ -24,6 +24,7 @@ APPROVED_NAMES = {
     "O_RDONLY",
     "open",
     "getpid",
+    "symlink",
 }
 
 

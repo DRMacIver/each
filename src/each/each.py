@@ -76,8 +76,9 @@ class FileWorkItem(WorkItem):
     def as_argument(self):
         return os.path.abspath(self.path)
 
-    def write_in_file(self, _path):
-        """We don't write ``in`` files for file work items."""
+    def write_in_file(self, path):
+        """The ``in`` file is a symlink to the original file."""
+        os.symlink(os.path.abspath(self.path), path)
 
 
 @attr.s()

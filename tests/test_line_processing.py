@@ -2,9 +2,9 @@ import os
 
 import pytest
 
+from common import get_directory_contents
 from each import Each
 from each.each import LineWorkItem
-from test_main import get_directory_contents
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])

@@ -1,5 +1,6 @@
 import pytest
 
+from common import get_directory_contents
 from each import Each
 
 
@@ -22,20 +23,11 @@ def test_processes_each_file(tmpdir, processes, stderr, stdin):
     each.clear_queue()
 
     for i, f in enumerate(sorted(output_files.listdir())):
-        out = f.join("out")
-        err = f.join("err")
-        status = f.join("status")
-
-        assert out.check()
-        assert err.check()
-        assert status.check()
-
+        contents = "hello %d" % (i,)
+        expected = {"status": "0", "in": contents, "out": contents, "err": ""}
         if stderr:
-            err, out = out, err
-
-        assert err.read().strip() == ""
-        assert out.read().strip() == "hello %d" % (i,)
-        assert status.read().strip() == "0"
+            expected.update({"out": "", "err": contents})
+        assert get_directory_contents(f) == expected
 
 
 def test_does_not_recreate_by_default(tmpdir):
