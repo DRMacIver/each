@@ -81,12 +81,12 @@ class Each(object):
             pass
 
         for s in os.listdir(self.source):
-            source_file = os.path.join(self.source, s)
-            status_file = os.path.join(self.destination, s, "status")
+            work_item = FileWorkItem(name=s, path=os.path.join(self.source, s))
+            status_file = os.path.join(self.destination, work_item.name, "status")
             if not self.recreate and os.path.exists(status_file):
                 self.progress_callback()
             else:
-                self.work_queue.append(FileWorkItem(name=s, path=source_file))
+                self.work_queue.append(work_item)
         # By iterating in random order, we can paradoxically get much better predictability
         # about the final run time! This allows us to conclude the times we've seen so far
         # are reasonably representative of the times we will see in future.
