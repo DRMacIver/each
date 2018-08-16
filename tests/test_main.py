@@ -8,17 +8,20 @@ import pytest
 
 @pytest.mark.parametrize("cat", ["cat", "cat {}"])
 def test_processes_each_file(tmpdir, cat):
-    input_files = tmpdir.mkdir("input")
-    output_files = tmpdir.mkdir("output")
+    input_path = tmpdir.mkdir("input")
+    output_path = tmpdir.mkdir("output")
     for i in range(10):
-        p = input_files.join("%d.txt" % (i,))
+        p = input_path.join("%d.txt" % (i,))
         p.write("hello %d" % (i,))
 
     subprocess.check_call(
-        [sys.executable, "-m", "each", str(input_files), cat, "--destination=%s" % (output_files,)]
+        [sys.executable, "-m", "each", str(input_path), cat, "--destination=%s" % (output_path,)]
     )
 
-    for i, f in enumerate(sorted(output_files.listdir())):
+    output_files = sorted(output_path.listdir())
+    assert output_files == [output_path.join("%d.txt" % (i,)) for i in range(10)]
+
+    for i, f in enumerate(output_files):
         out = f.join("out")
         err = f.join("err")
         status = f.join("status")
