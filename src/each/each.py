@@ -160,7 +160,7 @@ class Each(object):
         except NotADirectoryError:
             items = (
                 LineWorkItem(name=line.strip(), line=line.strip())
-                for line in open(self.source, "r").readlines()
+                for line in set(open(self.source, "r").readlines())
             )
 
         for work_item in items:

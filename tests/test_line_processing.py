@@ -48,6 +48,28 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
         assert get_directory_contents(f) == expected
 
 
+def test_duplicate_lines(tmpdir):
+    """We silently ignore duplicate lines."""
+    input_path = tmpdir.join("input")
+    output_path = tmpdir.mkdir("output")
+    line = "hello"
+    with input_path.open("w") as input_file:
+        input_file.write("%s\n" % (line,))
+        input_file.write("%s\n" % (line,))
+
+    each = Each(
+        command="echo {}",
+        source=input_path,
+        destination=output_path,
+        stdin=False,
+    )
+    each.clear_queue()
+
+    [output_file] = output_path.listdir()
+    expected = {"status": "0", "in": line, "out": line, "err": ""}
+    assert get_directory_contents(output_file) == expected
+
+
 def test_creates_pipe():
     """as_input_file returns a file descriptor from which we can read the original line."""
     line = "foo"
