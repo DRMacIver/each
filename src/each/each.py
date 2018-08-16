@@ -3,6 +3,7 @@ import shlex
 import shutil
 import time
 import traceback
+from abc import ABC, abstractmethod
 from random import Random
 
 import attr
@@ -29,8 +30,34 @@ class WorkInProgress:
     status_file = attr.ib()
 
 
+class WorkItem(ABC):
+    """A thing to processed by ``Each``."""
+
+    """A name for this work item that can be used as a filename."""
+    name = NotImplemented
+
+    @abstractmethod
+    def exists(self):
+        """Whether or not this work item still exists."""
+
+    @abstractmethod
+    def as_input_file(self):
+        """This work item as a file descriptor.
+
+        This file descriptor is used as STDIN on a user-provided command.
+        """
+
+    @abstractmethod
+    def as_argument(self):
+        """This work item as a command-line argument."""
+
+    @abstractmethod
+    def write_in_file(self, path):
+        """Create a file at 'path' that contains the input data for this work item."""
+
+
 @attr.s()
-class FileWorkItem:
+class FileWorkItem(WorkItem):
     """A file to be processed by ``Each``."""
 
     """A name for this work item that can be used as a filename."""
@@ -40,15 +67,13 @@ class FileWorkItem:
     path = attr.ib()
 
     def exists(self):
-        """Whether or not this work item still exists."""
+        """A file work item exists only if the file exists."""
         return os.path.exists(self.path)
 
     def as_input_file(self):
-        """This work item as a file descriptor, that can be passed to STDIN."""
         return os.open(self.path, os.O_RDONLY)
 
     def as_argument(self):
-        """This work item as a command-line argument."""
         return os.path.abspath(self.path)
 
     def write_in_file(self, _path):
@@ -77,21 +102,19 @@ class LineWorkItem:
         return True
 
     def as_input_file(self):
-        """This work item as a file descriptor, that can be passed to STDIN."""
         r, w = os.pipe()
         os.write(w, self.line.encode("utf-8"))
         os.write(w, b"\n")
         return r
 
     def as_argument(self):
-        """This work item as a command-line argument."""
         return self.line
 
     def write_in_file(self, path):
         """The ``in`` file for a line work item is a file with just that line."""
-        with open(path, 'w') as in_file:
+        with open(path, "w") as in_file:
             in_file.write(self.line)
-            in_file.write('\n')
+            in_file.write("\n")
 
 
 @attr.s()
