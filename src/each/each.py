@@ -23,10 +23,33 @@ SHELL = os.environ.get("SHELL") or shutil.which("bash") or shutil.which("sh")
 class WorkInProgress:
     pid = attr.ib()
     started = attr.ib()
-    source_file = attr.ib()
+    work_item = attr.ib()
     out_file = attr.ib()
     err_file = attr.ib()
     status_file = attr.ib()
+
+
+@attr.s()
+class FileWorkItem:
+    """A file to be processed by ``Each``."""
+
+    path = attr.ib()
+
+    def exists(self):
+        """Whether or not this work item still exists."""
+        return os.path.exists(self.path)
+
+    def name(self):
+        """A name for this work item that can be used as a filename."""
+        return os.path.basename(self.path)
+
+    def as_input_file(self):
+        """This work item as a file descriptor, that can be passed to STDIN."""
+        return os.open(self.path, os.O_RDONLY)
+
+    def as_argument(self):
+        """This work item as a command-line argument."""
+        return os.path.abspath(self.path)
 
 
 @attr.s()
@@ -63,7 +86,7 @@ class Each(object):
             if not self.recreate and os.path.exists(status_file):
                 self.progress_callback()
             else:
-                self.work_queue.append(source_file)
+                self.work_queue.append(FileWorkItem(source_file))
         # By iterating in random order, we can paradoxically get much better predictability
         # about the final run time! This allows us to conclude the times we've seen so far
         # are reasonably representative of the times we will see in future.
@@ -77,11 +100,11 @@ class Each(object):
 
     def fill_work_in_progress(self):
         while self.work_queue and len(self.work_in_progress) < self.processes:
-            source_file = self.work_queue.pop()
-            if not os.path.exists(source_file):
+            work_item = self.work_queue.pop()
+            if not work_item.exists():
                 self.progress_callback()
                 continue
-            name = os.path.basename(source_file)
+            name = work_item.name()
 
             base_dir = os.path.join(self.destination, name)
 
@@ -104,7 +127,7 @@ class Each(object):
             if pid != 0:
                 self.work_in_progress[pid] = WorkInProgress(
                     pid=pid,
-                    source_file=source_file,
+                    work_item=work_item,
                     out_file=out_file,
                     err_file=err_file,
                     status_file=status_file,
@@ -115,7 +138,7 @@ class Each(object):
                     original_err = os.dup(STDERR)
                     original_out = os.dup(STDOUT)
                     if self.stdin:
-                        filein = os.open(source_file, os.O_RDONLY)
+                        filein = work_item.as_input_file()
                         os.dup2(filein, STDIN)
                     else:
                         os.close(STDIN)
@@ -126,7 +149,7 @@ class Each(object):
                     os.dup2(out, STDOUT)
                     argv = [os.path.basename(self.shell), "-c", self.command]
                     if not self.stdin:
-                        argv[-1] = argv[-1].replace("{}", shlex.quote(os.path.abspath(source_file)))
+                        argv[-1] = argv[-1].replace("{}", shlex.quote(work_item.as_argument()))
                     os.execv(self.shell, argv)
                 except:  # noqa
                     os.dup2(original_out, STDOUT)
@@ -148,9 +171,9 @@ class Each(object):
             # work.
             best_timeout = 0.05 * self.wait_timeout
             self.progress_callback()
-            work_item = self.work_in_progress.pop(pid)
-            self.runtimes.append(time.monotonic() - work_item.started)
-            with open(work_item.status_file, "w") as o:
+            item_in_progress = self.work_in_progress.pop(pid)
+            self.runtimes.append(time.monotonic() - item_in_progress.started)
+            with open(item_in_progress.status_file, "w") as o:
                 print(result >> 8, file=o)
 
     def update_predicted_timing(self):
