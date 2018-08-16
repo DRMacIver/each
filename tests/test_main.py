@@ -57,11 +57,13 @@ def test_processes_each_line(tmpdir, echo):
     assert output_files == [output_path.join("hello %d" % (i,)) for i in range(10)]
 
     for i, f in enumerate(output_files):
+        in_ = f.join("in")
         out = f.join("out")
         err = f.join("err")
         status = f.join("status")
 
-        assert list(map(get_contents, [status, out, err])) == ["0", "hello %d" % (i,), ""]
+        line = "hello %d" % (i,)
+        assert list(map(get_contents, [status, in_, out, err])) == ["0", line, line, ""]
 
 
 def get_contents(path):

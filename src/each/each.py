@@ -51,6 +51,9 @@ class FileWorkItem:
         """This work item as a command-line argument."""
         return os.path.abspath(self.path)
 
+    def write_in_file(self, _path):
+        """We don't write ``in`` files for file work items."""
+
 
 @attr.s()
 class LineWorkItem:
@@ -83,6 +86,12 @@ class LineWorkItem:
     def as_argument(self):
         """This work item as a command-line argument."""
         return self.line
+
+    def write_in_file(self, path):
+        """The ``in`` file for a line work item is a file with just that line."""
+        with open(path, 'w') as in_file:
+            in_file.write(self.line)
+            in_file.write('\n')
 
 
 @attr.s()
@@ -156,12 +165,13 @@ class Each(object):
 
             base_dir = os.path.join(self.destination, work_item.name)
 
+            in_file = os.path.join(base_dir, "in")
             out_file = os.path.join(base_dir, "out")
             err_file = os.path.join(base_dir, "err")
             status_file = os.path.join(base_dir, "status")
 
             if os.path.exists(base_dir):
-                for f in [out_file, err_file, status_file]:
+                for f in [in_file, out_file, err_file, status_file]:
                     if os.path.exists(f):
                         os.unlink(f)
 
@@ -169,6 +179,8 @@ class Each(object):
                 os.makedirs(base_dir)
             except FileExistsError:
                 pass
+
+            work_item.write_in_file(in_file)
 
             pid = None
             pid = os.fork()
