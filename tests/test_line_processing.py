@@ -1,5 +1,7 @@
 import os
 
+from hypothesis import given
+from hypothesis import strategies as st
 import pytest
 
 from common import get_directory_contents
@@ -70,10 +72,11 @@ def test_duplicate_lines(tmpdir):
     assert get_directory_contents(output_file) == expected
 
 
-def test_creates_pipe():
+@given(data=st.text())
+def test_creates_pipe(data):
     """as_input_file returns a file descriptor from which we can read the original line."""
-    line = "foo"
+    line = data.split("\n")[0] if data else ""
     item = LineWorkItem(name="foo", line=line)
     fd = item.as_input_file()
-    output_line = os.read(fd, len(line) + 1).decode("utf-8")
-    assert output_line == line + "\n"
+    output_line = os.read(fd, len(line.encode('utf-8'))).decode('utf-8')
+    assert output_line.strip('\n') == line
