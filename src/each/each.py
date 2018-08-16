@@ -53,14 +53,51 @@ class FileWorkItem:
 
 
 @attr.s()
-class Each(object):
-    """Run a single command on many files in a directory."""
+class LineWorkItem:
+    """A line to be processed by ``Each``."""
 
-    """A path to a directory containing files to process."""
+    """A name for this work item that can be used as a filename."""
+    name = attr.ib()
+
+    """The line itself."""
+    # TODO(jml): This is currently text, rather than bytes. I think it should
+    # probably be bytes, since this is read straight from a file and passed to
+    # other processes. That raises questions about encoding for FileWorkItem
+    # that I'm not ready to deal with right now.
+    line = attr.ib()
+
+    def exists(self):
+        """Whether or not this work item still exists.
+
+        A line always exists.
+        """
+        return True
+
+    def as_input_file(self):
+        """This work item as a file descriptor, that can be passed to STDIN."""
+        r, w = os.pipe()
+        os.write(w, self.line.encode("utf-8"))
+        os.write(w, b"\n")
+        return r
+
+    def as_argument(self):
+        """This work item as a command-line argument."""
+        return self.line
+
+
+@attr.s()
+class Each(object):
+    """Run a single command over many things.
+
+    These things can be either lines in a file, or files in a directory.
+    """
+
+    """A path to either a directory containing files to process or a file
+    containing lines to process."""
     source = attr.ib()
     """A path to a directory where we will create the output files."""
     destination = attr.ib()
-    """The command to run on files in the source directory. This is a single string."""
+    """The command to run over the source data. This is a single string."""
     command = attr.ib()
     """The number of processes to run in parallel."""
     processes = attr.ib(default=1)
@@ -80,8 +117,20 @@ class Each(object):
         except FileExistsError:
             pass
 
-        for s in os.listdir(self.source):
-            work_item = FileWorkItem(name=s, path=os.path.join(self.source, s))
+        # If self.source is a directory, our work items are files. If it's a
+        # file, our work items are lines.
+        try:
+            items = (
+                FileWorkItem(name=s, path=os.path.join(self.source, s))
+                for s in os.listdir(self.source)
+            )
+        except NotADirectoryError:
+            items = (
+                LineWorkItem(name=line.strip(), line=line.strip())
+                for line in open(self.source, "r").readlines()
+            )
+
+        for work_item in items:
             status_file = os.path.join(self.destination, work_item.name, "status")
             if not self.recreate and os.path.exists(status_file):
                 self.progress_callback()
