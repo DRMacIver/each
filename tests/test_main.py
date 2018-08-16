@@ -22,17 +22,7 @@ def test_processes_each_file(tmpdir, cat):
     assert output_files == [output_path.join("%d.txt" % (i,)) for i in range(10)]
 
     for i, f in enumerate(output_files):
-        out = f.join("out")
-        err = f.join("err")
-        status = f.join("status")
-
-        assert out.check()
-        assert err.check()
-        assert status.check()
-
-        assert err.read().strip() == ""
-        assert out.read().strip() == "hello %d" % (i,)
-        assert status.read().strip() == "0"
+        assert get_directory_contents(f) == {"err": "", "status": "0", "out": "hello %d" % (i,)}
 
 
 @pytest.mark.parametrize("echo", ["cat", "echo {}"])
@@ -57,18 +47,18 @@ def test_processes_each_line(tmpdir, echo):
     assert output_files == [output_path.join("hello %d" % (i,)) for i in range(10)]
 
     for i, f in enumerate(output_files):
-        in_ = f.join("in")
-        out = f.join("out")
-        err = f.join("err")
-        status = f.join("status")
-
         line = "hello %d" % (i,)
-        assert list(map(get_contents, [status, in_, out, err])) == ["0", line, line, ""]
+        assert get_directory_contents(f) == {"out": line, "in": line, "err": "", "status": "0"}
 
 
 def get_contents(path):
     """Get the contents of 'path' if it exists."""
     return path.read().strip() if path.check() else None
+
+
+def get_directory_contents(path):
+    """Get the contents of many files under 'path'."""
+    return {child.basename: get_contents(child) for child in path.listdir()}
 
 
 @pytest.mark.parametrize("shell", [which("sh"), which("bash")])
