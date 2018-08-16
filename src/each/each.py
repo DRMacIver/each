@@ -31,9 +31,15 @@ class WorkInProgress:
 
 @attr.s()
 class Each(object):
+    """Run a single command on many files in a directory."""
+
+    """A path to a directory containing files to process."""
     source = attr.ib()
+    """A path to a directory where we will create the output files."""
     destination = attr.ib()
+    """The command to run on files in the source directory. This is a single string."""
     command = attr.ib()
+    """The number of processes to run in parallel."""
     processes = attr.ib(default=1)
     recreate = attr.ib(default=False)
     stdin = attr.ib(default=True)
