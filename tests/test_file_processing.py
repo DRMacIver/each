@@ -2,6 +2,7 @@ import pytest
 
 from common import get_directory_contents
 from each import Each
+from each.each import LineWorkItem, work_items_from_directory
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])
@@ -15,7 +16,7 @@ def test_processes_each_file(tmpdir, processes, stderr, stdin):
         p.write("hello %d" % (i,))
     each = Each(
         command=("cat >&2 " if stderr else "cat") + (" {}" if not stdin else ""),
-        source=input_files,
+        work_items=work_items_from_directory(input_files),
         destination=output_files,
         processes=processes,
         stdin=stdin,
@@ -31,19 +32,16 @@ def test_processes_each_file(tmpdir, processes, stderr, stdin):
 
 
 def test_does_not_recreate_by_default(tmpdir):
-    input_files = tmpdir.mkdir("input")
     output_files = tmpdir.mkdir("output")
     marker = tmpdir.join("marker")
 
     marker.write("stuff")
 
-    input_files.join("hello").write("")
-
     for _ in range(2):
         each = Each(
             command="cat %s" % (marker,),
             stdin=False,
-            source=input_files,
+            work_items=[LineWorkItem("hello", "")],
             destination=output_files,
             processes=1,
         )
@@ -73,7 +71,7 @@ def test_recreates_if_set(tmpdir, bad_crash):
         each = Each(
             command="cat %s" % (marker,),
             stdin=False,
-            source=input_files,
+            work_items=work_items_from_directory(input_files),
             destination=output_files,
             processes=1,
             recreate=True,
@@ -97,7 +95,7 @@ def test_can_handle_disappearing_files(tmpdir):
     each = Each(
         command="cat",
         stdin=False,
-        source=input_files,
+        work_items=work_items_from_directory(input_files),
         destination=output_files,
         processes=1,
         recreate=True,
@@ -113,14 +111,11 @@ def test_can_handle_disappearing_files(tmpdir):
 
 
 def test_timeout_in_file_processing(tmpdir):
-
-    input_files = tmpdir.mkdir("input")
     output_files = tmpdir.mkdir("output")
-    input_files.join("hello").write("world")
 
     each = Each(
         command="sleep 0.5 && cat",
-        source=input_files,
+        work_items=[LineWorkItem("hello", "world")],
         destination=output_files,
         processes=1,
         recreate=True,
@@ -130,7 +125,7 @@ def test_timeout_in_file_processing(tmpdir):
     each.clear_queue()
 
     assert len(output_files.listdir()) == 1
-    assert output_files.join("hello").join("out").read() == "world"
+    assert output_files.join("hello").join("out").read() == "world\n"
 
 
 def test_immediately_triggers_progress_on_initially_completed_work(tmpdir):
@@ -150,7 +145,7 @@ def test_immediately_triggers_progress_on_initially_completed_work(tmpdir):
 
         each = Each(
             command="true",
-            source=input_files,
+            work_items=work_items_from_directory(input_files),
             destination=output_files,
             processes=1,
             recreate=False,

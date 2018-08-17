@@ -118,6 +118,43 @@ class LineWorkItem(WorkItem):
             in_file.write("\n")
 
 
+def work_items_from_path(path):
+    """Load work items from a user-supplied path.
+
+    If 'path' is a directory, our work items are files. If it's a # file, our
+    work items are lines.
+    """
+    try:
+        return work_items_from_directory(path)
+    except NotADirectoryError:
+        return work_items_from_file(path)
+
+
+def work_items_from_directory(path):
+    """Get a list of work items from a directory.
+
+    Each file in the directory is a work item.
+    """
+    return (
+        FileWorkItem(name=s, path=os.path.join(path, s))
+        for s in os.listdir(path)
+    )
+
+
+def work_items_from_file(path):
+    """Yield a series of work items derived from an iterator of lines.
+
+    We expect each line to be a ``str`` with the newline already stripped.
+    """
+    # TODO: This incorrectly handles duplicate lines on case insensitive file systems.
+    # TODO: What about lines that contain /
+    # TODO: What about blank lines?
+    return (
+        LineWorkItem(name=line.strip(), line=line.strip())
+        for line in set(open(path, "r"))
+    )
+
+
 @attr.s()
 class Each(object):
     """Run a single command over many things.
@@ -125,9 +162,15 @@ class Each(object):
     These things can be either lines in a file, or files in a directory.
     """
 
-    """A path to either a directory containing files to process or a file
-    containing lines to process."""
-    source = attr.ib()
+    """A list of work items to process.
+
+    The names of the items must all be valid filesystem names, and must not
+    clash with each other when written to the filesystem.
+
+    i.e. they must be unique, and if your filesystem is case-insensitive, they
+    must be unique after being lower-cased.
+    """
+    work_items = attr.ib()
     """A path to a directory where we will create the output files."""
     destination = attr.ib()
     """The command to run over the source data. This is a single string."""
@@ -150,17 +193,7 @@ class Each(object):
         except FileExistsError:
             pass
 
-        # If self.source is a directory, our work items are files. If it's a
-        # file, our work items are lines.
-        try:
-            items = (
-                FileWorkItem(name=s, path=os.path.join(self.source, s))
-                for s in os.listdir(self.source)
-            )
-        except NotADirectoryError:
-            items = iter_work_items_for_lines(open(self.source, "r"))
-
-        for work_item in items:
+        for work_item in self.work_items:
             status_file = os.path.join(self.destination, work_item.name, "status")
             if not self.recreate and os.path.exists(status_file):
                 self.progress_callback()
@@ -279,17 +312,3 @@ class Each(object):
             self.fill_work_in_progress()
             self.update_predicted_timing()
             self.collect_completed_work()
-
-
-def iter_work_items_for_lines(lines):
-    """Yield a series of work items derived from an iterator of lines.
-
-    We expect each line to be a ``str`` with the newline already stripped.
-    """
-    # TODO: This incorrectly handles duplicate lines on case insensitive file systems.
-    # TODO: What about lines that contain /
-    # TODO: What about blank lines?
-    return (
-        LineWorkItem(name=line.strip(), line=line.strip())
-        for line in set(lines)
-    )

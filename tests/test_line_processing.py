@@ -6,7 +6,7 @@ import pytest
 
 from common import get_directory_contents
 from each import Each
-from each.each import LineWorkItem
+from each.each import LineWorkItem, work_items_from_file
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])
@@ -32,7 +32,7 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
 
     each = Each(
         command=command,
-        source=input_path,
+        work_items=work_items_from_file(input_path),
         destination=output_path,
         processes=processes,
         stdin=stdin,
@@ -52,16 +52,15 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
 
 def test_duplicate_lines(tmpdir):
     """We silently ignore duplicate lines."""
-    input_path = tmpdir.join("input")
     output_path = tmpdir.mkdir("output")
     line = "hello"
-    with input_path.open("w") as input_file:
-        input_file.write("%s\n" % (line,))
-        input_file.write("%s\n" % (line,))
 
     each = Each(
         command="echo {}",
-        source=input_path,
+        work_items=[
+            LineWorkItem(line, line),
+            LineWorkItem(line, line),
+        ],
         destination=output_path,
         stdin=False,
     )

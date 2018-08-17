@@ -97,7 +97,10 @@ def test_will_show_exception_if_exec_fails(child_test, capsys, tmpdir, stdin, li
             input_path.join("hello").write("")
 
         each = Each(
-            command="cat", source=input_path, destination=tmpdir.mkdir("output"), stdin=stdin
+            command="cat",
+            work_items=each_module.work_items_from_path(input_path),
+            destination=tmpdir.mkdir("output"),
+            stdin=stdin,
         )
 
         each.clear_queue()
