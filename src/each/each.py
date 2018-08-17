@@ -158,10 +158,7 @@ class Each(object):
                 for s in os.listdir(self.source)
             )
         except NotADirectoryError:
-            items = (
-                LineWorkItem(name=line.strip(), line=line.strip())
-                for line in set(open(self.source, "r").readlines())
-            )
+            items = iter_work_items_for_lines(open(self.source, "r").readlines())
 
         for work_item in items:
             status_file = os.path.join(self.destination, work_item.name, "status")
@@ -282,3 +279,17 @@ class Each(object):
             self.fill_work_in_progress()
             self.update_predicted_timing()
             self.collect_completed_work()
+
+
+def iter_work_items_for_lines(lines):
+    """Yield a series of work items derived from an iterator of lines.
+
+    We expect each line to be a ``str`` with the newline already stripped.
+    """
+    # TODO: This incorrectly handles duplicate lines on case insensitive file systems.
+    # TODO: What about lines that contain /
+    # TODO: What about blank lines?
+    return (
+        LineWorkItem(name=line.strip(), line=line.strip())
+        for line in set(lines)
+    )
