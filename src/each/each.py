@@ -158,7 +158,7 @@ class Each(object):
                 for s in os.listdir(self.source)
             )
         except NotADirectoryError:
-            items = iter_work_items_for_lines(open(self.source, "r").readlines())
+            items = iter_work_items_for_lines(open(self.source, "r"))
 
         for work_item in items:
             status_file = os.path.join(self.destination, work_item.name, "status")
