@@ -82,7 +82,7 @@ class FileWorkItem(WorkItem):
 
 
 @attr.s()
-class LineWorkItem:
+class LineWorkItem(WorkItem):
     """A line to be processed by ``Each``."""
 
     """A name for this work item that can be used as a filename."""
