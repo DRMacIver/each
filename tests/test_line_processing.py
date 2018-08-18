@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
-from common import get_directory_contents
+from common import gather_output, get_directory_contents
 from each import Each
 from each.each import LineWorkItem, work_items_from_file
 
@@ -15,9 +15,11 @@ from each.each import LineWorkItem, work_items_from_file
 def test_processes_each_line(tmpdir, processes, stderr, stdin):
     input_path = tmpdir.join("input")
     output_path = tmpdir.mkdir("output")
+    lines = ["hello %d" % (i,) for i in range(5)]
     with input_path.open("w") as input_file:
-        for i in range(10):
-            input_file.write("hello %d\n" % (i,))
+        for line in lines:
+            input_file.write(line)
+            input_file.write('\n')
 
     if stdin:
         if stderr:
@@ -39,15 +41,11 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
     )
     each.clear_queue()
 
-    output_files = sorted(output_path.listdir())
-    assert output_files == [output_path.join("hello %d" % (i,)) for i in range(10)]
-
-    for i, f in enumerate(output_files):
-        line = "hello %d" % (i,)
-        expected = {"status": "0", "in": line, "out": line, "err": ""}
-        if stderr:
-            expected.update({"out": "", "err": line})
-        assert get_directory_contents(f) == expected
+    if stderr:
+        expected = {line: [{"status": "0", "in": line, "out": "", "err": line}] for line in lines}
+    else:
+        expected = {line: [{"status": "0", "in": line, "out": line, "err": ""}] for line in lines}
+    assert gather_output(output_path) == expected
 
 
 def test_duplicate_lines(tmpdir):
@@ -69,6 +67,51 @@ def test_duplicate_lines(tmpdir):
     [output_file] = output_path.listdir()
     expected = {"status": "0", "in": line, "out": line, "err": ""}
     assert get_directory_contents(output_file) == expected
+
+
+def test_awkward_lines(tmpdir):
+    if tmpdir.join("output").check():
+        tmpdir.join("output").remove(rec=True)
+    output_path = tmpdir.mkdir("output")
+
+    input_path = tmpdir.join("input")
+    # We hit the deadline limit pretty query if we let Hypothesis generate
+    # examples. Instead, let's provide a few of the ones that tripped us up.
+    input_data = '\n'.join([
+        '',
+        ' ',
+        '*',
+        '\r',
+        ' ', ' ',
+        'some/path',
+        'no-trailing-newline'
+    ])
+    lines = input_data.splitlines()
+    input_path.write(input_data)
+
+    each = Each(
+        command="cat",
+        work_items=work_items_from_file(input_path),
+        destination=output_path,
+        stdin=True,
+    )
+    each.clear_queue()
+
+    expected = {line: [{"status": "0", "in": line, "out": line, "err": ""}] for line in lines}
+    assert gather_output(output_path) == expected
+
+
+@given(data=st.lists(st.text()))
+def test_unique_named_work_items(tmpdir, data):
+    """The names of the work items are unique even after case is smashed.
+
+    This allows ``Each`` to safely create directories based on the names.
+    """
+    input_file = tmpdir.join("input")
+    input_file.write('\n'.join(data))
+    item_names = [item.name for item in work_items_from_file(input_file)]
+    assert sorted(list({name.lower() for name in item_names})) \
+        == sorted(name.lower() for name in item_names)
 
 
 @given(data=st.text())

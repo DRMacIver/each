@@ -125,7 +125,7 @@ def test_timeout_in_file_processing(tmpdir):
     each.clear_queue()
 
     assert len(output_files.listdir()) == 1
-    assert output_files.join("hello").join("out").read() == "world\n"
+    assert output_files.join("hello").join("out").read() == "world"
 
 
 def test_immediately_triggers_progress_on_initially_completed_work(tmpdir):

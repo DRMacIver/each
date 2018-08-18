@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shlex
 import shutil
@@ -88,11 +89,7 @@ class LineWorkItem(WorkItem):
     """A name for this work item that can be used as a filename."""
     name = attr.ib()
 
-    """The line itself."""
-    # TODO(jml): This is currently text, rather than bytes. I think it should
-    # probably be bytes, since this is read straight from a file and passed to
-    # other processes. That raises questions about encoding for FileWorkItem
-    # that I'm not ready to deal with right now.
+    """The line itself, including line ending, as text."""
     line = attr.ib()
 
     def exists(self):
@@ -105,17 +102,15 @@ class LineWorkItem(WorkItem):
     def as_input_file(self):
         r, w = os.pipe()
         os.write(w, self.line.encode("utf-8"))
-        os.write(w, b"\n")
         return r
 
     def as_argument(self):
-        return self.line
+        return self.line.rstrip('\n')
 
     def write_in_file(self, path):
         """The ``in`` file for a line work item is a file with just that line."""
         with open(path, "w") as in_file:
             in_file.write(self.line)
-            in_file.write("\n")
 
 
 def work_items_from_path(path):
@@ -146,13 +141,11 @@ def work_items_from_file(path):
 
     We expect each line to be a ``str`` with the newline already stripped.
     """
-    # TODO: This incorrectly handles duplicate lines on case insensitive file systems.
-    # TODO: What about lines that contain /
-    # TODO: What about blank lines?
-    return (
-        LineWorkItem(name=line.strip(), line=line.strip())
-        for line in set(open(path, "r"))
-    )
+    items = {}
+    for line in open(path, 'r'):
+        name = hashlib.sha256(line.encode('utf-8')).hexdigest()[-8:]
+        items[name] = LineWorkItem(name, line)
+    return items.values()
 
 
 @attr.s()
