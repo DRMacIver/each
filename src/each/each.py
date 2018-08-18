@@ -6,6 +6,7 @@ import shutil
 import time
 import traceback
 from abc import ABC, abstractmethod
+from collections import Counter
 from random import Random
 
 import attr
@@ -192,6 +193,8 @@ class Each(object):
     runtimes = attr.ib(default=attr.Factory(list))
     prediction = attr.ib(default=None)
     wait_timeout = attr.ib(default=1.0)
+    retries = attr.ib(default=0)
+    failure_counts = attr.ib(default=attr.Factory(Counter))
 
     def __attrs_post_init__(self):
         self.work_queue = []
@@ -203,7 +206,25 @@ class Each(object):
 
         for work_item in self.work_items:
             status_file = os.path.join(self.destination, work_item.name, "status")
-            if not self.recreate and os.path.exists(status_file):
+
+            previous_status = None
+
+            try:
+                with open(status_file) as i:
+                    previous_status = int(i.read().strip())
+            except (ValueError, FileNotFoundError):
+                pass
+
+            if previous_status is not None:
+                discard = not self.recreate
+
+                if previous_status != 0 and self.retries > 0:
+                    self.failure_counts[work_item.name] += 1
+                    discard = False
+            else:
+                discard = False
+
+            if discard:
                 self.progress_callback()
             else:
                 self.work_queue.append(work_item)
@@ -292,11 +313,15 @@ class Each(object):
             # quickly on the others so we don't delay rescheduling
             # work.
             best_timeout = 0.05 * self.wait_timeout
-            self.progress_callback()
             item_in_progress = self.work_in_progress.pop(pid)
             self.runtimes.append(time.monotonic() - item_in_progress.started)
             with open(item_in_progress.status_file, "w") as o:
                 print(result >> 8, file=o)
+            if result != 0 and self.failure_counts[item_in_progress.work_item.name] < self.retries:
+                self.work_queue.append(item_in_progress.work_item)
+                self.failure_counts[item_in_progress.work_item.name] += 1
+            else:
+                self.progress_callback()
 
     def update_predicted_timing(self):
         assert (len(self.work_in_progress) == self.processes) or (len(self.work_queue) == 0)

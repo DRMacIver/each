@@ -58,6 +58,15 @@ overwritten.
     ),
 )
 @click.option(
+    "--retries",
+    default=0,
+    help="""
+How many times each should retry a process if it fails (exits with a
+non-zero status). Previous runs of each that failed will only ever be
+counted as a single failure no matter how many times they called the
+process.""",
+)
+@click.option(
     "--processes",
     "-j",
     default=max(1, mp.cpu_count() - 1),
@@ -75,7 +84,7 @@ By default will use stdin unless {} is present in the command.
         "\n", " "
     ),
 )
-def main(command, source, destination, recreate, processes, stdin, shell):
+def main(command, source, destination, recreate, processes, stdin, shell, retries):
     if not destination:
         destination = source.rstrip("/") + "-results"
 
@@ -104,6 +113,7 @@ def main(command, source, destination, recreate, processes, stdin, shell):
             recreate=recreate,
             processes=processes,
             stdin=stdin,
+            retries=retries,
         )
         pb.total = pb.n + len(each.work_queue)
         pb.refresh()
