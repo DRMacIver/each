@@ -122,7 +122,8 @@ def work_items_from_path(path):
     try:
         return work_items_from_directory(path)
     except NotADirectoryError:
-        return work_items_from_file(path)
+        with open(path, 'r') as stream:
+            return work_items_from_file(stream)
 
 
 def work_items_from_directory(path):
@@ -136,13 +137,15 @@ def work_items_from_directory(path):
     )
 
 
-def work_items_from_file(path):
+def work_items_from_file(stream):
     """Yield a series of work items derived from an iterator of lines.
 
-    We expect each line to be a ``str`` with the newline already stripped.
+    We expect each line to be a ``str`` with the newline already stripped, as
+    happens automatically with open files, or with ``StringIO`` with universal
+    newline decoding.
     """
     items = {}
-    for line in open(path, 'r'):
+    for line in stream:
         name = hashlib.sha256(line.encode('utf-8')).hexdigest()[-8:]
         items[name] = LineWorkItem(name, line)
     return items.values()

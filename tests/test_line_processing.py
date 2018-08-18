@@ -1,3 +1,4 @@
+import io
 import os
 
 from hypothesis import given
@@ -5,7 +6,7 @@ from hypothesis import strategies as st
 import pytest
 
 from common import gather_output, get_directory_contents
-from each import Each
+from each import Each, work_items_from_path
 from each.each import LineWorkItem, work_items_from_file
 
 
@@ -34,7 +35,7 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
 
     each = Each(
         command=command,
-        work_items=work_items_from_file(input_path),
+        work_items=work_items_from_path(input_path),
         destination=output_path,
         processes=processes,
         stdin=stdin,
@@ -74,7 +75,6 @@ def test_awkward_lines(tmpdir):
         tmpdir.join("output").remove(rec=True)
     output_path = tmpdir.mkdir("output")
 
-    input_path = tmpdir.join("input")
     # We hit the deadline limit pretty query if we let Hypothesis generate
     # examples. Instead, let's provide a few of the ones that tripped us up.
     input_data = '\n'.join([
@@ -82,16 +82,19 @@ def test_awkward_lines(tmpdir):
         ' ',
         '*',
         '\r',
-        ' ', ' ',
         'some/path',
         'no-trailing-newline'
     ])
+    # splitlines() here as this turns the line w/ '\r' into an empty line, and
+    # is what we'd do if we had Hypothesis generate data in the same way as
+    # test_unique_named_work_items.
     lines = input_data.splitlines()
-    input_path.write(input_data)
+    # Enable universal newline decoding to better emulate actual files.
+    input_stream = io.StringIO(input_data, newline=None)
 
     each = Each(
         command="cat",
-        work_items=work_items_from_file(input_path),
+        work_items=work_items_from_file(input_stream),
         destination=output_path,
         stdin=True,
     )
@@ -102,14 +105,13 @@ def test_awkward_lines(tmpdir):
 
 
 @given(data=st.lists(st.text()))
-def test_unique_named_work_items(tmpdir, data):
+def test_unique_named_work_items(data):
     """The names of the work items are unique even after case is smashed.
 
     This allows ``Each`` to safely create directories based on the names.
     """
-    input_file = tmpdir.join("input")
-    input_file.write('\n'.join(data))
-    item_names = [item.name for item in work_items_from_file(input_file)]
+    input_stream = io.StringIO('\n'.join(data))
+    item_names = [item.name for item in work_items_from_file(input_stream)]
     assert sorted(list({name.lower() for name in item_names})) \
         == sorted(name.lower() for name in item_names)
 
