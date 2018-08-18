@@ -6,7 +6,7 @@ def get_contents(path):
 
     Strips any trailing newlines.
     """
-    return path.read().rstrip('\n') if path.check() else None
+    return path.read().rstrip("\n") if path.check() else None
 
 
 def get_directory_contents(path):

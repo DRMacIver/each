@@ -47,7 +47,7 @@ def test_processes_each_line(tmpdir, echo):
     with input_path.open("w") as input_file:
         for line in lines:
             input_file.write(line)
-            input_file.write('\n')
+            input_file.write("\n")
 
     subprocess.check_call(
         [sys.executable, "-m", "each", str(input_path), echo, "--destination=%s" % (output_path,)]

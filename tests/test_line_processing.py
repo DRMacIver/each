@@ -1,9 +1,8 @@
 import io
 import os
 
-from hypothesis import given
-from hypothesis import strategies as st
 import pytest
+from hypothesis import given, strategies as st
 
 from common import gather_output, get_directory_contents
 from each import Each, work_items_from_path
@@ -20,7 +19,7 @@ def test_processes_each_line(tmpdir, processes, stderr, stdin):
     with input_path.open("w") as input_file:
         for line in lines:
             input_file.write(line)
-            input_file.write('\n')
+            input_file.write("\n")
 
     if stdin:
         if stderr:
@@ -56,10 +55,7 @@ def test_duplicate_lines(tmpdir):
 
     each = Each(
         command="echo {}",
-        work_items=[
-            LineWorkItem(line, line),
-            LineWorkItem(line, line),
-        ],
+        work_items=[LineWorkItem(line, line), LineWorkItem(line, line)],
         destination=output_path,
         stdin=False,
     )
@@ -77,14 +73,7 @@ def test_awkward_lines(tmpdir):
 
     # We hit the deadline limit pretty query if we let Hypothesis generate
     # examples. Instead, let's provide a few of the ones that tripped us up.
-    input_data = '\n'.join([
-        '',
-        ' ',
-        '*',
-        '\r',
-        'some/path',
-        'no-trailing-newline'
-    ])
+    input_data = "\n".join(["", " ", "*", "\r", "some/path", "no-trailing-newline"])
     # splitlines() here as this turns the line w/ '\r' into an empty line, and
     # is what we'd do if we had Hypothesis generate data in the same way as
     # test_unique_named_work_items.
@@ -110,10 +99,11 @@ def test_unique_named_work_items(data):
 
     This allows ``Each`` to safely create directories based on the names.
     """
-    input_stream = io.StringIO('\n'.join(data))
+    input_stream = io.StringIO("\n".join(data))
     item_names = [item.name for item in work_items_from_file(input_stream)]
-    assert sorted(list({name.lower() for name in item_names})) \
-        == sorted(name.lower() for name in item_names)
+    assert sorted(list({name.lower() for name in item_names})) == sorted(
+        name.lower() for name in item_names
+    )
 
 
 @given(data=st.text())
@@ -122,5 +112,5 @@ def test_creates_pipe(data):
     line = data.split("\n")[0] if data else ""
     item = LineWorkItem(name="foo", line=line)
     fd = item.as_input_file()
-    output_line = os.read(fd, len(line.encode('utf-8'))).decode('utf-8')
-    assert output_line.strip('\n') == line
+    output_line = os.read(fd, len(line.encode("utf-8"))).decode("utf-8")
+    assert output_line.strip("\n") == line

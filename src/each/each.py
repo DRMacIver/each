@@ -105,7 +105,7 @@ class LineWorkItem(WorkItem):
         return r
 
     def as_argument(self):
-        return self.line.rstrip('\n')
+        return self.line.rstrip("\n")
 
     def write_in_file(self, path):
         """The ``in`` file for a line work item is a file with just that line."""
@@ -122,7 +122,7 @@ def work_items_from_path(path):
     try:
         return work_items_from_directory(path)
     except NotADirectoryError:
-        with open(path, 'r') as stream:
+        with open(path, "r") as stream:
             return work_items_from_file(stream)
 
 
@@ -131,10 +131,7 @@ def work_items_from_directory(path):
 
     Each file in the directory is a work item.
     """
-    return (
-        FileWorkItem(name=s, path=os.path.join(path, s))
-        for s in os.listdir(path)
-    )
+    return (FileWorkItem(name=s, path=os.path.join(path, s)) for s in os.listdir(path))
 
 
 def work_items_from_file(stream):
@@ -146,7 +143,7 @@ def work_items_from_file(stream):
     """
     items = {}
     for line in stream:
-        name = hashlib.sha256(line.encode('utf-8')).hexdigest()[-8:]
+        name = hashlib.sha256(line.encode("utf-8")).hexdigest()[-8:]
         items[name] = LineWorkItem(name, line)
     return items.values()
 
