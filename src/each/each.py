@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import shlex
 import shutil
 import time
@@ -134,6 +135,18 @@ def work_items_from_directory(path):
     return (FileWorkItem(name=s, path=os.path.join(path, s)) for s in os.listdir(path))
 
 
+"""What we consider a 'simple name'.
+
+These are appended to the hashes of lines when generating output,
+as a convenience to the humans who must contend with it.
+"""
+simple_name_re = re.compile("^[A-Za-z0-9_-]+$")
+
+
+"""The longest simple name we allow."""
+MAX_NAME_LENGTH = 100
+
+
 def work_items_from_file(stream):
     """Yield a series of work items derived from an iterator of lines.
 
@@ -144,6 +157,8 @@ def work_items_from_file(stream):
     items = {}
     for line in stream:
         name = hashlib.sha256(line.encode("utf-8")).hexdigest()[-8:]
+        if simple_name_re.match(line.strip()):
+            name += "-" + line.strip()[:MAX_NAME_LENGTH]
         items[name] = LineWorkItem(name, line)
     return items.values()
 
