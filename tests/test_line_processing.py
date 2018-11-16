@@ -8,7 +8,7 @@ from hypothesis import given, strategies as st
 
 from common import gather_output, get_directory_contents
 from each import Each, work_items_from_path
-from each.each import MAX_NAME_LENGTH, LineWorkItem, work_items_from_lines
+from each.each import MAX_SIMPLE_NAME_SUFFIX_LENGTH, LineWorkItem, work_items_from_lines
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])
@@ -110,7 +110,9 @@ def test_unique_named_work_items(data):
 
 @given(
     name=st.text(
-        alphabet=string.ascii_letters + string.digits + "-_", min_size=1, max_size=MAX_NAME_LENGTH
+        alphabet=string.ascii_letters + string.digits + "-_",
+        min_size=1,
+        max_size=MAX_SIMPLE_NAME_SUFFIX_LENGTH,
     )
 )
 def test_friendly_names(name):
@@ -122,8 +124,8 @@ def test_friendly_names(name):
 @given(
     name=st.text(
         alphabet=string.ascii_letters + string.digits + "-_",
-        min_size=MAX_NAME_LENGTH,
-        max_size=MAX_NAME_LENGTH * 2,
+        min_size=MAX_SIMPLE_NAME_SUFFIX_LENGTH,
+        max_size=MAX_SIMPLE_NAME_SUFFIX_LENGTH * 2,
     )
 )
 def test_long_names(name):
@@ -134,7 +136,7 @@ def test_long_names(name):
     """
     names = [item.name for item in work_items_from_lines(io.StringIO(name))]
     hash_prefix = hashlib.sha256(name.encode("utf-8")).hexdigest()[-8:]
-    assert names == ["%s-%s" % (hash_prefix, name[:MAX_NAME_LENGTH])]
+    assert names == ["%s-%s" % (hash_prefix, name[:MAX_SIMPLE_NAME_SUFFIX_LENGTH])]
 
 
 @given(data=st.text())

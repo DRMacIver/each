@@ -145,8 +145,8 @@ as a convenience to the humans who must contend with it.
 simple_name_re = re.compile("^[A-Za-z0-9_-]+$")
 
 
-"""The longest simple name we allow."""
-MAX_NAME_LENGTH = 100
+"""The longest simple name we allow as a suffix to the generated filename."""
+MAX_SIMPLE_NAME_SUFFIX_LENGTH = 100
 
 
 def work_items_from_lines(stream):
@@ -160,7 +160,7 @@ def work_items_from_lines(stream):
     for line in stream:
         name = hashlib.sha256(line.encode("utf-8")).hexdigest()[-8:]
         if simple_name_re.match(line.strip()):
-            name += "-" + line.strip()[:MAX_NAME_LENGTH]
+            name += "-" + line.strip()[:MAX_SIMPLE_NAME_SUFFIX_LENGTH]
         items[name] = LineWorkItem(name, line)
     return items.values()
 
