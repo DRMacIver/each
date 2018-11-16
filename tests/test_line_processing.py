@@ -8,7 +8,7 @@ from hypothesis import given, strategies as st
 
 from common import gather_output, get_directory_contents
 from each import Each, work_items_from_path
-from each.each import MAX_NAME_LENGTH, LineWorkItem, work_items_from_file
+from each.each import MAX_NAME_LENGTH, LineWorkItem, work_items_from_lines
 
 
 @pytest.mark.parametrize("processes", [1, 2, 4])
@@ -85,7 +85,7 @@ def test_awkward_lines(tmpdir):
 
     each = Each(
         command="cat",
-        work_items=work_items_from_file(input_stream),
+        work_items=work_items_from_lines(input_stream),
         destination=output_path,
         stdin=True,
     )
@@ -102,7 +102,7 @@ def test_unique_named_work_items(data):
     This allows ``Each`` to safely create directories based on the names.
     """
     input_stream = io.StringIO("\n".join(data))
-    item_names = [item.name for item in work_items_from_file(input_stream)]
+    item_names = [item.name for item in work_items_from_lines(input_stream)]
     assert sorted(list({name.lower() for name in item_names})) == sorted(
         name.lower() for name in item_names
     )
@@ -115,7 +115,7 @@ def test_unique_named_work_items(data):
 )
 def test_friendly_names(name):
     """If a line has nothing weird in it, we give it a friendly name."""
-    names = [item.name for item in work_items_from_file(io.StringIO(name))]
+    names = [item.name for item in work_items_from_lines(io.StringIO(name))]
     assert names == ["%s-%s" % (hashlib.sha256(name.encode("utf-8")).hexdigest()[-8:], name)]
 
 
@@ -132,7 +132,7 @@ def test_long_names(name):
     If a line has nothing weird in it, but is really long, we give it a
     friendly, truncated name.
     """
-    names = [item.name for item in work_items_from_file(io.StringIO(name))]
+    names = [item.name for item in work_items_from_lines(io.StringIO(name))]
     hash_prefix = hashlib.sha256(name.encode("utf-8")).hexdigest()[-8:]
     assert names == ["%s-%s" % (hash_prefix, name[:MAX_NAME_LENGTH])]
 

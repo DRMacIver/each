@@ -126,7 +126,7 @@ def work_items_from_path(path):
         return work_items_from_directory(path)
     except NotADirectoryError:
         with open(path, "r") as stream:
-            return work_items_from_file(stream)
+            return work_items_from_lines(stream)
 
 
 def work_items_from_directory(path):
@@ -149,7 +149,7 @@ simple_name_re = re.compile("^[A-Za-z0-9_-]+$")
 MAX_NAME_LENGTH = 100
 
 
-def work_items_from_file(stream):
+def work_items_from_lines(stream):
     """Yield a series of work items derived from an iterator of lines.
 
     We expect each line to be a ``str`` with the newline already stripped, as
