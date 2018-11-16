@@ -108,7 +108,7 @@ class LineWorkItem(WorkItem):
         return r
 
     def as_argument(self):
-        return self.line.rstrip("\n")
+        return self.line.rstrip("\r\n")
 
     def write_in_file(self, path):
         """The ``in`` file for a line work item is a file with just that line."""
