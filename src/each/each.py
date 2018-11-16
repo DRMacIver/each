@@ -104,6 +104,7 @@ class LineWorkItem(WorkItem):
     def as_input_file(self):
         r, w = os.pipe()
         os.write(w, self.line.encode("utf-8"))
+        os.close(w)
         return r
 
     def as_argument(self):
