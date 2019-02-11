@@ -1,5 +1,6 @@
 *.swp
 *.egg-info
 .coverage
+.hypothesis
 .pytest_cache
 dist

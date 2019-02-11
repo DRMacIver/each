@@ -1,6 +1,6 @@
 import sys
 
-from each import Each
+from each import Each, work_items_from_path
 
 
 def test_retries_failures_from_a_previous_run(tmpdir):
@@ -11,7 +11,11 @@ def test_retries_failures_from_a_previous_run(tmpdir):
 
     for command, status in [("false", 1), ("true", 0)]:
         each = Each(
-            command=command, retries=1, stdin=False, source=input_files, destination=output_files
+            command=command,
+            retries=1,
+            stdin=False,
+            work_items=work_items_from_path(input_files),
+            destination=output_files,
         )
         each.clear_queue()
 
@@ -52,7 +56,7 @@ def test_retries_failures_in_the_current_run(tmpdir):
         command="%s %s" % (sys.executable, update_counter),
         retries=2,
         stdin=False,
-        source=input_files,
+        work_items=work_items_from_path(input_files),
         destination=output_files,
     )
     each.clear_queue()

@@ -5,7 +5,7 @@ from each.prediction import predict_timing
 
 @pytest.mark.parametrize("parallelism", [1, 4, 10])
 @pytest.mark.parametrize("remaining", [1, 10, 100, 1000])
-@pytest.mark.parametrize("seed", [0, 384139841])
+@pytest.mark.parametrize("seed", [0, 384_139_841])
 @pytest.mark.parametrize("base", [1, 10, 60, 120])
 def test_predictions_based_on_constant_data_are_fairly_consistent(
     parallelism, remaining, seed, base

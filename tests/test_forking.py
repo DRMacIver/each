@@ -24,6 +24,7 @@ APPROVED_NAMES = {
     "O_RDONLY",
     "open",
     "getpid",
+    "symlink",
 }
 
 
@@ -49,10 +50,21 @@ class FakeOS(object):
     def dup2(self, fd1, fd2, inheritable=True):
         self.process_table[fd2] = fd2
 
-    def dup(self, fd1):
+    def _get_next_fd(self):
         res = self.next_fd
         self.next_fd += 1
         return res
+
+    def dup(self, fd1):
+        return self._get_next_fd()
+
+    def pipe(self):
+        r = self._get_next_fd()
+        w = self._get_next_fd()
+        return (r, w)
+
+    def write(self, fd, data):
+        pass
 
     def close(self, fd):
         self.closed.add(fd)
@@ -72,15 +84,23 @@ def child_test(monkeypatch):
 
 
 @pytest.mark.parametrize("stdin", [False, True])
-def test_will_show_exception_if_exec_fails(child_test, capsys, tmpdir, stdin):
+@pytest.mark.parametrize("line_mode", [False, True])
+def test_will_show_exception_if_exec_fails(child_test, capsys, tmpdir, stdin, line_mode):
     child_test.exec_error = PermissionError
 
     with pytest.raises(SystemExit):
-        input_files = tmpdir.mkdir("input")
-        input_files.join("hello").write("")
+        if line_mode:
+            input_path = tmpdir.join("input")
+            input_path.write("hello\n")
+        else:
+            input_path = tmpdir.mkdir("input")
+            input_path.join("hello").write("")
 
         each = Each(
-            command="cat", source=input_files, destination=tmpdir.mkdir("output"), stdin=stdin
+            command="cat",
+            work_items=each_module.work_items_from_path(input_path),
+            destination=tmpdir.mkdir("output"),
+            stdin=stdin,
         )
 
         each.clear_queue()

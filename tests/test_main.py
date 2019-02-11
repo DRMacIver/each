@@ -5,31 +5,57 @@ from shutil import which
 
 import pytest
 
+from common import gather_output, get_directory_contents
+
 
 @pytest.mark.parametrize("cat", ["cat", "cat {}"])
 def test_processes_each_file(tmpdir, cat):
-    input_files = tmpdir.mkdir("input")
-    output_files = tmpdir.mkdir("output")
+    input_path = tmpdir.mkdir("input")
+    output_path = tmpdir.mkdir("output")
     for i in range(10):
-        p = input_files.join("%d.txt" % (i,))
+        p = input_path.join("%d.txt" % (i,))
         p.write("hello %d" % (i,))
 
     subprocess.check_call(
-        [sys.executable, "-m", "each", str(input_files), cat, "--destination=%s" % (output_files,)]
+        [sys.executable, "-m", "each", str(input_path), cat, "--destination=%s" % (output_path,)]
     )
 
-    for i, f in enumerate(sorted(output_files.listdir())):
-        out = f.join("out")
-        err = f.join("err")
-        status = f.join("status")
+    output_files = sorted(output_path.listdir())
+    assert output_files == [output_path.join("%d.txt" % (i,)) for i in range(10)]
 
-        assert out.check()
-        assert err.check()
-        assert status.check()
+    for i, f in enumerate(output_files):
+        contents = "hello %d" % (i,)
+        assert get_directory_contents(f) == {
+            "err": "",
+            "status": "0",
+            "out": contents,
+            "in": contents,
+        }
 
-        assert err.read().strip() == ""
-        assert out.read().strip() == "hello %d" % (i,)
-        assert status.read().strip() == "0"
+
+@pytest.mark.parametrize("echo", ["cat", "echo {}"])
+def test_processes_each_line(tmpdir, echo):
+    """When given a file (not a directory) as input, ``each`` will run the given
+    command on each *line* of the file, creating an output directory for that
+    looks a lot like the output directory you get with a directory input,
+    except that each directory also has an ``in`` file, which contains the
+    contents of the input line.
+    """
+    input_path = tmpdir.join("input")
+    output_path = tmpdir.mkdir("output")
+    lines = ["hello %d" % (i,) for i in range(5)]
+    with input_path.open("w") as input_file:
+        for line in lines:
+            input_file.write(line)
+            input_file.write("\n")
+
+    subprocess.check_call(
+        [sys.executable, "-m", "each", str(input_path), echo, "--destination=%s" % (output_path,)]
+    )
+
+    output = gather_output(output_path)
+    expected = {line: [{"out": line, "in": line, "err": "", "status": "0"}] for line in lines}
+    assert output == expected
 
 
 @pytest.mark.parametrize("shell", [which("sh"), which("bash")])

@@ -93,14 +93,6 @@ Windows. I'm not against Windows support if someone wants to contribute it, but 
 be writing it myself and it's a fairly unixy sort of tool.
 
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Why isn't this tested with `Hypothesis <https://github.com/HypothesisWorks/hypothesis>`_?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Look, buddy, you're lucky it's tested at *all*.
-
-(It probably will be at some point)
-
 ~~~~~~~~~~~~~~~~~~
 Should I use this?
 ~~~~~~~~~~~~~~~~~~

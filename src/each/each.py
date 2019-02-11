@@ -1,8 +1,11 @@
+import hashlib
 import os
+import re
 import shlex
 import shutil
 import time
 import traceback
+from abc import ABC, abstractmethod
 from collections import Counter
 from random import Random
 
@@ -24,17 +27,165 @@ SHELL = os.environ.get("SHELL") or shutil.which("bash") or shutil.which("sh")
 class WorkInProgress:
     pid = attr.ib()
     started = attr.ib()
-    source_file = attr.ib()
+    work_item = attr.ib()
     out_file = attr.ib()
     err_file = attr.ib()
     status_file = attr.ib()
 
 
+class WorkItem(ABC):
+    """A thing to processed by ``Each``."""
+
+    """A name for this work item that can be used as a filename."""
+    name = NotImplemented
+
+    @abstractmethod
+    def exists(self):
+        """Whether or not this work item still exists."""
+
+    @abstractmethod
+    def as_input_file(self):
+        """This work item as a file descriptor.
+
+        This file descriptor is used as STDIN on a user-provided command.
+        """
+
+    @abstractmethod
+    def as_argument(self):
+        """This work item as a command-line argument."""
+
+    @abstractmethod
+    def write_in_file(self, path):
+        """Create a file at 'path' that contains the input data for this work item."""
+
+
+@attr.s()
+class FileWorkItem(WorkItem):
+    """A file to be processed by ``Each``."""
+
+    """A name for this work item that can be used as a filename."""
+    name = attr.ib()
+
+    """The location of the file on disk."""
+    path = attr.ib()
+
+    def exists(self):
+        """A file work item exists only if the file exists."""
+        return os.path.exists(self.path)
+
+    def as_input_file(self):
+        return os.open(self.path, os.O_RDONLY)
+
+    def as_argument(self):
+        return os.path.abspath(self.path)
+
+    def write_in_file(self, path):
+        """The ``in`` file is a symlink to the original file."""
+        os.symlink(os.path.abspath(self.path), path)
+
+
+@attr.s()
+class LineWorkItem(WorkItem):
+    """A line to be processed by ``Each``."""
+
+    """A name for this work item that can be used as a filename."""
+    name = attr.ib()
+
+    """The line itself, including line ending, as text."""
+    line = attr.ib()
+
+    def exists(self):
+        """Whether or not this work item still exists.
+
+        A line always exists.
+        """
+        return True
+
+    def as_input_file(self):
+        r, w = os.pipe()
+        os.write(w, self.line.encode("utf-8"))
+        os.close(w)
+        return r
+
+    def as_argument(self):
+        return self.line.rstrip("\r\n")
+
+    def write_in_file(self, path):
+        """The ``in`` file for a line work item is a file with just that line."""
+        with open(path, "w") as in_file:
+            in_file.write(self.line)
+
+
+def work_items_from_path(path):
+    """Load work items from a user-supplied path.
+
+    If 'path' is a directory, our work items are files. If it's a # file, our
+    work items are lines.
+    """
+    try:
+        return work_items_from_directory(path)
+    except NotADirectoryError:
+        with open(path, "r") as stream:
+            return work_items_from_lines(stream)
+
+
+def work_items_from_directory(path):
+    """Get a list of work items from a directory.
+
+    Each file in the directory is a work item.
+    """
+    return (FileWorkItem(name=s, path=os.path.join(path, s)) for s in os.listdir(path))
+
+
+"""What we consider a 'simple name'.
+
+These are appended to the hashes of lines when generating output,
+as a convenience to the humans who must contend with it.
+"""
+simple_name_re = re.compile("^[A-Za-z0-9_-]+$")
+
+
+"""The longest simple name we allow as a suffix to the generated filename."""
+MAX_SIMPLE_NAME_SUFFIX_LENGTH = 100
+
+
+def work_items_from_lines(stream):
+    """Yield a series of work items derived from an iterator of lines.
+
+    We expect each line to be a ``str`` with the newline already stripped, as
+    happens automatically with open files, or with ``StringIO`` with universal
+    newline decoding.
+    """
+    items = {}
+    for line in stream:
+        name = hashlib.sha256(line.encode("utf-8")).hexdigest()[-8:]
+        if simple_name_re.match(line.strip()):
+            name += "-" + line.strip()[:MAX_SIMPLE_NAME_SUFFIX_LENGTH]
+        items[name] = LineWorkItem(name, line)
+    return items.values()
+
+
 @attr.s()
 class Each(object):
-    source = attr.ib()
+    """Run a single command over many things.
+
+    These things can be either lines in a file, or files in a directory.
+    """
+
+    """A list of work items to process.
+
+    The names of the items must all be valid filesystem names, and must not
+    clash with each other when written to the filesystem.
+
+    i.e. they must be unique, and if your filesystem is case-insensitive, they
+    must be unique after being lower-cased.
+    """
+    work_items = attr.ib()
+    """A path to a directory where we will create the output files."""
     destination = attr.ib()
+    """The command to run over the source data. This is a single string."""
     command = attr.ib()
+    """The number of processes to run in parallel."""
     processes = attr.ib(default=1)
     recreate = attr.ib(default=False)
     stdin = attr.ib(default=True)
@@ -54,9 +205,8 @@ class Each(object):
         except FileExistsError:
             pass
 
-        for s in os.listdir(self.source):
-            source_file = os.path.join(self.source, s)
-            status_file = os.path.join(self.destination, s, "status")
+        for work_item in self.work_items:
+            status_file = os.path.join(self.destination, work_item.name, "status")
 
             previous_status = None
 
@@ -70,7 +220,7 @@ class Each(object):
                 discard = not self.recreate
 
                 if previous_status != 0 and self.retries > 0:
-                    self.failure_counts[source_file] += 1
+                    self.failure_counts[work_item.name] += 1
                     discard = False
             else:
                 discard = False
@@ -78,7 +228,7 @@ class Each(object):
             if discard:
                 self.progress_callback()
             else:
-                self.work_queue.append(source_file)
+                self.work_queue.append(work_item)
         # By iterating in random order, we can paradoxically get much better predictability
         # about the final run time! This allows us to conclude the times we've seen so far
         # are reasonably representative of the times we will see in future.
@@ -92,20 +242,20 @@ class Each(object):
 
     def fill_work_in_progress(self):
         while self.work_queue and len(self.work_in_progress) < self.processes:
-            source_file = self.work_queue.pop()
-            if not os.path.exists(source_file):
+            work_item = self.work_queue.pop()
+            if not work_item.exists():
                 self.progress_callback()
                 continue
-            name = os.path.basename(source_file)
 
-            base_dir = os.path.join(self.destination, name)
+            base_dir = os.path.join(self.destination, work_item.name)
 
+            in_file = os.path.join(base_dir, "in")
             out_file = os.path.join(base_dir, "out")
             err_file = os.path.join(base_dir, "err")
             status_file = os.path.join(base_dir, "status")
 
             if os.path.exists(base_dir):
-                for f in [out_file, err_file, status_file]:
+                for f in [in_file, out_file, err_file, status_file]:
                     if os.path.exists(f):
                         os.unlink(f)
 
@@ -114,12 +264,14 @@ class Each(object):
             except FileExistsError:
                 pass
 
+            work_item.write_in_file(in_file)
+
             pid = None
             pid = os.fork()
             if pid != 0:
                 self.work_in_progress[pid] = WorkInProgress(
                     pid=pid,
-                    source_file=source_file,
+                    work_item=work_item,
                     out_file=out_file,
                     err_file=err_file,
                     status_file=status_file,
@@ -130,7 +282,7 @@ class Each(object):
                     original_err = os.dup(STDERR)
                     original_out = os.dup(STDOUT)
                     if self.stdin:
-                        filein = os.open(source_file, os.O_RDONLY)
+                        filein = work_item.as_input_file()
                         os.dup2(filein, STDIN)
                     else:
                         os.close(STDIN)
@@ -141,7 +293,7 @@ class Each(object):
                     os.dup2(out, STDOUT)
                     argv = [os.path.basename(self.shell), "-c", self.command]
                     if not self.stdin:
-                        argv[-1] = argv[-1].replace("{}", shlex.quote(os.path.abspath(source_file)))
+                        argv[-1] = argv[-1].replace("{}", shlex.quote(work_item.as_argument()))
                     os.execv(self.shell, argv)
                 except:  # noqa
                     os.dup2(original_out, STDOUT)
@@ -162,13 +314,13 @@ class Each(object):
             # quickly on the others so we don't delay rescheduling
             # work.
             best_timeout = 0.05 * self.wait_timeout
-            work_item = self.work_in_progress.pop(pid)
-            self.runtimes.append(time.monotonic() - work_item.started)
-            with open(work_item.status_file, "w") as o:
+            item_in_progress = self.work_in_progress.pop(pid)
+            self.runtimes.append(time.monotonic() - item_in_progress.started)
+            with open(item_in_progress.status_file, "w") as o:
                 print(result >> 8, file=o)
-            if result != 0 and self.failure_counts[work_item.source_file] < self.retries:
-                self.work_queue.append(work_item.source_file)
-                self.failure_counts[work_item.source_file] += 1
+            if result != 0 and self.failure_counts[item_in_progress.work_item.name] < self.retries:
+                self.work_queue.append(item_in_progress.work_item)
+                self.failure_counts[item_in_progress.work_item.name] += 1
             else:
                 self.progress_callback()
 

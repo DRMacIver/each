@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import click
 from tqdm import tqdm
 
-from each import SHELL, Each
+from each import SHELL, Each, work_items_from_path
 
 
 @click.command(
@@ -102,8 +102,9 @@ def main(command, source, destination, recreate, processes, stdin, shell, retrie
             else:
                 pb.set_postfix(eta=eta.strftime("%Y-%m-%d %H:%M"))
 
+        work_items = work_items_from_path(source)
         each = Each(
-            source=source,
+            work_items=work_items,
             shell=shell,
             destination=destination,
             command=command,
